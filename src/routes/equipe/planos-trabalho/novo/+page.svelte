@@ -23,6 +23,11 @@
 		'Revisão e envio',
 	];
 
+	// Guard de exceção: servidor cria o próprio PT como padrão; chefia só cria
+	// em casos excepcionais (servidor offline, urgência, etc). Antes do wizard,
+	// exigimos uma confirmação explícita.
+	let excecaoConfirmada = $state(false);
+
 	const MODALIDADES = [
 		{ value: 'PRESENCIAL', label: 'Presencial', sub: 'Sem teletrabalho' },
 		{ value: 'TELETRABALHO_PARCIAL', label: 'TT Parcial', sub: 'Até 50% do tempo' },
@@ -215,10 +220,18 @@
 		<div>
 			<div class="pg-eyebrow">Novo Plano de Trabalho</div>
 			<h1 class="pg-title">
-				{participanteAtual ? `Plano para ${participanteAtual.nome}` : 'Criar Plano de Trabalho'}
+				{#if !excecaoConfirmada}
+					Criar Plano de Trabalho
+				{:else}
+					{participanteAtual ? `Plano para ${participanteAtual.nome}` : 'Criar Plano de Trabalho'}
+				{/if}
 			</h1>
 			<p class="pg-sub">
-				Etapa {step + 1} de {STEPS.length} · <strong>{STEPS[step]}</strong>
+				{#if !excecaoConfirmada}
+					Caminho de exceção · confirme antes de seguir
+				{:else}
+					Etapa {step + 1} de {STEPS.length} · <strong>{STEPS[step]}</strong>
+				{/if}
 			</p>
 		</div>
 		<div class="row" style="gap:10px; align-items:center">
@@ -233,9 +246,50 @@
 		</div>
 	</div>
 
-	<div class="card" style="padding:22px 28px; margin-bottom:var(--gap-sec)">
-		<Stepper steps={STEPS} current={step} />
-	</div>
+	{#if !excecaoConfirmada}
+		<!-- ─── Step de exceção (Fase 7.4) ───────────────────────────── -->
+		<section
+			class="card"
+			data-testid="step-excecao"
+			style="border-left:3px solid var(--c-warning); max-width:720px; margin:0 auto"
+		>
+			<div class="kicker" style="color:var(--c-warning)">
+				<Icon name="alert-triangle" size={14} /> Caminho de exceção
+			</div>
+			<h2 style="font-family:var(--ff-display); font-weight:700; font-size:22px; margin:10px 0 12px">
+				Você está criando um plano para um servidor
+			</h2>
+			<p style="font-size:14px; color:var(--c-ink-2); line-height:1.6; margin:0">
+				O caminho padrão é o próprio servidor criar o plano de trabalho dele e enviar para sua
+				assinatura. Crie pela chefia apenas em casos excepcionais — servidor offline, urgência
+				operacional, ou plano herdado de outra unidade.
+			</p>
+
+			<ul
+				style="margin:16px 0 0; padding-left:20px; font-size:13.5px; color:var(--c-ink-2); line-height:1.7"
+			>
+				<li>O servidor terá que assinar antes do plano entrar em vigor.</li>
+				<li>O fluxo completo (5 etapas) leva ~5 minutos.</li>
+				<li>Você pode salvar como rascunho a qualquer momento.</li>
+			</ul>
+
+			<div class="divider"></div>
+			<div class="row" style="justify-content:flex-end; gap:10px">
+				<a href="/equipe" class="btn btn-ghost">Voltar para a equipe</a>
+				<button
+					type="button"
+					class="btn btn-primary"
+					data-testid="btn-confirmar-excecao"
+					onclick={() => (excecaoConfirmada = true)}
+				>
+					Confirmar e continuar <Icon name="arrow-right" size={15} />
+				</button>
+			</div>
+		</section>
+	{:else}
+		<div class="card" style="padding:22px 28px; margin-bottom:var(--gap-sec)">
+			<Stepper steps={STEPS} current={step} />
+		</div>
 
 	<div class="g-2-1">
 		<section class="card">
@@ -668,4 +722,5 @@
 			</section>
 		</div>
 	</div>
+	{/if}
 </div>
