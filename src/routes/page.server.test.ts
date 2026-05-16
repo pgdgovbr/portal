@@ -60,6 +60,26 @@ describe('+page.server — load (dashboard)', () => {
 		expect(result.planosTrabalho).toHaveLength(1);
 		expect(result.planosTrabalho[0].status).toBe('EM_EXECUCAO');
 		expect(result.notificacoes).toEqual([]);
+		expect(result.aguardandoMinhaAcao).toEqual([]);
+	});
+
+	it('servidor role: PT em AGUARDANDO_ASSINATURA_PARTICIPANTE aparece em aguardandoMinhaAcao', async () => {
+		const backendPt = {
+			id: 'pt-99',
+			idPlanoTrabalho: 'PT-2026-99',
+			status: 7, // AGUARDANDO_ASSINATURA_PARTICIPANTE
+			dataInicio: '2025-01-01',
+			dataTermino: '2025-12-31',
+			cargaHorariaDisponivel: 200,
+			contribuicoes: [],
+			avaliacoes: [],
+		};
+		mockFetchWith({ meusPlanosTrabalho: [backendPt], minhasNotificacoes: [] });
+
+		const result: any = await load(makeEvent({ role: 'servidor', id: '1', nome: 'Maria' }));
+		expect(result.aguardandoMinhaAcao).toHaveLength(1);
+		expect(result.aguardandoMinhaAcao[0].id).toBe('pt-99');
+		expect(result.aguardandoMinhaAcao[0].href).toBe('/meu-plano/pt-99/revisar');
 	});
 
 	it('servidor role: gqlFetch throws → returns {}', async () => {
@@ -78,7 +98,33 @@ describe('+page.server — load (dashboard)', () => {
 
 		const result = await load(makeEvent({ role: 'chefe_imediato', id: '2', nome: 'Carlos' }));
 
-		expect(result).toEqual({ participantes: [mockUserOutput], avaliacoesPendentes: [] });
+		expect(result).toEqual({
+			participantes: [mockUserOutput],
+			avaliacoesPendentes: [],
+			aguardandoMinhaAcao: []
+		});
+	});
+
+	it('chefe_imediato role: PT em AGUARDANDO_ASSINATURA_CHEFIA aparece em aguardandoMinhaAcao', async () => {
+		const pl = {
+			id: 'pt-77',
+			idPlanoTrabalho: 'PT-2026-77',
+			participanteId: '99',
+			status: 2, // AGUARDANDO_ASSINATURA_CHEFIA
+			dataTermino: '2026-12-31'
+		};
+		mockFetchWith({
+			listarParticipantes: [mockUserInput],
+			listarPlanosTrabalho: [pl]
+		});
+
+		const result: any = await load(
+			makeEvent({ role: 'chefe_imediato', id: '2', nome: 'Carlos' })
+		);
+		expect(result.aguardandoMinhaAcao).toHaveLength(1);
+		expect(result.aguardandoMinhaAcao[0].id).toBe('pt-77');
+		expect(result.aguardandoMinhaAcao[0].participanteNome).toBe('João Gestor');
+		expect(result.aguardandoMinhaAcao[0].href).toBe('/equipe/planos-trabalho/pt-77/revisar');
 	});
 
 	it('no user (not logged in) → returns {}', async () => {
