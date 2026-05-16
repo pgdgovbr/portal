@@ -6,30 +6,26 @@ const QUERY = `
   query PlanoEntregas($id: ID!) {
     planoEntregas(id: $id) {
       id
-      titulo
+      idPlanoEntregas
       status
       dataInicio
-      dataFim
-      unidadeNome
-      entregas {
-        id
-        titulo
-        responsavel { id nome }
-        prazo
-        status
-        progresso
-        contribuicoes { id }
-      }
-      timeline {
-        label
-        date
-        current
-        future
-        note
-      }
+      dataTermino
+      avaliacao
+      dataAvaliacao
+      codUnidadeAutorizadora
+      codUnidadeInstituidora
+      codUnidadeExecutora
     }
   }
 `;
+
+const STATUS_MAP: Record<number, string> = {
+  1: 'EM_ELABORACAO',
+  2: 'AGUARDANDO_APROVACAO',
+  3: 'EM_EXECUCAO',
+  4: 'CONCLUIDO',
+  5: 'CANCELADO',
+};
 
 export const load: PageServerLoad = async ({ params, cookies }) => {
 	const token = cookies.get('access_token');
@@ -40,5 +36,17 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 		return { plano: null };
 	}
 	if (!data.planoEntregas) error(404, 'Plano de entregas não encontrado');
-	return { plano: data.planoEntregas };
+
+	const pe = data.planoEntregas;
+	const plano = {
+		...pe,
+		titulo: pe.idPlanoEntregas ?? 'Plano de Entregas',
+		status: STATUS_MAP[pe.status] ?? String(pe.status),
+		dataFim: pe.dataTermino,
+		unidadeNome: `Unidade ${pe.codUnidadeExecutora}`,
+		entregas: [],
+		timeline: [],
+	};
+
+	return { plano };
 };
