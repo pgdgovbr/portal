@@ -55,7 +55,7 @@ describe('hooks.server — handle', () => {
 	it('?token na URL → seta cookie e redireciona para /', async () => {
 		const event = makeEvent('/?token=jwt-from-backend');
 		await expect(handle({ event, resolve })).rejects.toMatchObject({ status: 302 });
-		expect((event.cookies as ReturnType<typeof makeCookies>).set).toHaveBeenCalledWith(
+		expect((event.cookies as unknown as ReturnType<typeof makeCookies>).set).toHaveBeenCalledWith(
 			'access_token',
 			'jwt-from-backend',
 			expect.objectContaining({ httpOnly: true, path: '/' })
