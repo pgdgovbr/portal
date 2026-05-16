@@ -284,6 +284,61 @@ async function captureDemo(browser: ReturnType<typeof chromium.launch> extends P
   await ctxG.close();
 }
 
+async function captureExtra(browser: ReturnType<typeof chromium.launch> extends Promise<infer B> ? B : never) {
+  // ── Notificações — Ana Silva ──────────────────────────────────────────────
+  console.log('\n[NOTIFICAÇÕES — Ana Silva]');
+  const ctxN = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctxN, PERSONAS.servidor1);
+  const pageN = await ctxN.newPage();
+  await go(pageN, '/notificacoes');
+  await shot(pageN, 'servidor/notificacoes.png');
+  await ctxN.close();
+
+  // ── Relatórios — Maria Fernanda ───────────────────────────────────────────
+  console.log('\n[RELATÓRIOS — Maria Fernanda]');
+  const ctxR = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctxR, PERSONAS.gestor);
+  const pageR = await ctxR.newPage();
+  await go(pageR, '/relatorios');
+  await shot(pageR, 'gestor/relatorios.png');
+  await ctxR.close();
+
+  // ── Admin — Roberto Admin ─────────────────────────────────────────────────
+  console.log('\n[ADMIN — Roberto Admin]');
+  const ctxA = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctxA, PERSONAS.admin);
+  const pageA = await ctxA.newPage();
+
+  await go(pageA, '/admin/participantes');
+  await shot(pageA, 'admin/participantes.png');
+
+  await go(pageA, '/admin/institucional');
+  await shot(pageA, 'admin/institucional.png');
+
+  await ctxA.close();
+
+  // ── Detalhe de participante — Carlos Souza ────────────────────────────────
+  console.log('\n[PARTICIPANTE DETALHE — Carlos Souza]');
+  const ctxP = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctxP, PERSONAS.chefe1);
+  const pageP = await ctxP.newPage();
+
+  await go(pageP, '/equipe');
+  await pageP.waitForTimeout(600);
+  // Clicar no primeiro link de participante (não o de "novo plano")
+  const partLinks = await pageP.locator('a[href*="/equipe/participantes/"]').all();
+  if (partLinks.length > 0) {
+    await partLinks[0].click();
+    await pageP.waitForLoadState('networkidle');
+    await pageP.waitForTimeout(500);
+    await shot(pageP, 'chefia/participante-detalhe.png');
+  } else {
+    console.log('  ! nenhum link de participante encontrado');
+  }
+
+  await ctxP.close();
+}
+
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -297,6 +352,7 @@ async function main() {
     await captureChefe(browser);
     await captureGestor(browser);
     await captureDemo(browser);
+    await captureExtra(browser);
   } catch (err) {
     console.error('\nErro durante captura:', err);
     process.exit(1);
