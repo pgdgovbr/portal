@@ -15,6 +15,7 @@
 	const notificacoes = $derived<any[]>((data as any).notificacoes ?? []);
 	const participantes = $derived<any[]>((data as any).participantes ?? []);
 	const avaliacoesPendentes = $derived<any[]>((data as any).avaliacoesPendentes ?? []);
+	const aguardandoMinhaAcao = $derived<any[]>((data as any).aguardandoMinhaAcao ?? []);
 
 	function daysUntil(dateStr: string): number {
 		const target = new Date(dateStr);
@@ -51,7 +52,31 @@
 			</div>
 		</div>
 
-		{#if !planoAtivo}
+		{#if aguardandoMinhaAcao.length > 0}
+			<div
+				class="banner"
+				data-testid="banner-aguardando-minha-acao"
+				style="margin-bottom:var(--gap-sec); border-left:4px solid var(--c-warning); background:var(--c-warning-soft)"
+			>
+				<span class="icon"><Icon name="clock" size={20} stroke={1.8} /></span>
+				<div style="flex:1">
+					<div class="ttl">
+						{aguardandoMinhaAcao.length === 1
+							? '1 plano de trabalho aguardando sua assinatura'
+							: `${aguardandoMinhaAcao.length} planos de trabalho aguardando sua assinatura`}
+					</div>
+					<div class="sub">
+						A chefia ajustou e devolveu para sua revisão. Sem sua assinatura, o plano não entra em
+						execução.
+					</div>
+				</div>
+				<a class="btn btn-primary" href={aguardandoMinhaAcao[0].href}>
+					Revisar agora <Icon name="arrow-right" size={15} />
+				</a>
+			</div>
+		{/if}
+
+		{#if !planoAtivo && aguardandoMinhaAcao.length === 0}
 			<div class="banner urgent" style="margin-bottom:var(--gap-sec)">
 				<span class="icon"><Icon name="alert-circle" size={20} /></span>
 				<div style="flex:1">
@@ -168,6 +193,53 @@
 				</p>
 			</div>
 		</div>
+
+		{#if aguardandoMinhaAcao.length > 0}
+			<section
+				class="card"
+				data-testid="card-aguardando-minha-acao"
+				style="margin-bottom:var(--gap-sec); border-left:4px solid var(--c-warning); background:var(--c-warning-soft)"
+			>
+				<div class="card-hd">
+					<div>
+						<div class="kicker" style="color:var(--c-warning)">
+							<Icon name="clock" size={13} stroke={1.8} /> Aguardando sua ação
+						</div>
+						<h2 style="margin-top:6px">
+							{aguardandoMinhaAcao.length === 1
+								? '1 plano de trabalho aguardando sua assinatura'
+								: `${aguardandoMinhaAcao.length} planos de trabalho aguardando sua assinatura`}
+						</h2>
+						<p>Servidores enviaram o plano para você revisar e assinar.</p>
+					</div>
+				</div>
+				<div class="stack-12">
+					{#each aguardandoMinhaAcao.slice(0, 5) as item (item.id)}
+						<div
+							class="row"
+							style="padding:10px 12px; background:white; border-radius:var(--r-md); border:1px solid var(--c-border); gap:12px"
+						>
+							<Icon name="clipboard" size={16} />
+							<div style="flex:1">
+								<div style="font-weight:600">{item.participanteNome}</div>
+								<div style="font-size:12.5px; color:var(--c-muted)">
+									{item.idPlanoTrabalho ?? item.id}
+								</div>
+							</div>
+							<a href={item.href} class="btn btn-primary btn-sm">Revisar e assinar</a>
+						</div>
+					{/each}
+				</div>
+				{#if aguardandoMinhaAcao.length > 5}
+					<a
+						href="/equipe"
+						style="font-size:13px; color:var(--c-primary); font-weight:600; display:inline-block; margin-top:12px"
+					>
+						Ver todos ({aguardandoMinhaAcao.length}) →
+					</a>
+				{/if}
+			</section>
+		{/if}
 
 		<div class="g-4" style="margin-bottom:var(--gap-sec)">
 			<div class="card" style="padding:22px">
