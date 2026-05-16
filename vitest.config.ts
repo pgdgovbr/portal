@@ -17,6 +17,7 @@ export default defineConfig({
 			$lib: path.resolve('./src/lib'),
 			'$app/stores': path.resolve('./src/test-mocks/app-stores.ts'),
 			'$app/navigation': path.resolve('./src/test-mocks/app-navigation.ts'),
+			'$app/forms': path.resolve('./src/test-mocks/app-forms.ts'),
 			'$env/dynamic/public': path.resolve('./src/test-mocks/env-public.ts'),
 		},
 	},
