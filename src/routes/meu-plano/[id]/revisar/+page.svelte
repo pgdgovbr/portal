@@ -10,14 +10,9 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const plano = $derived((data as any).plano);
-	const diff = $derived(((data as any).diff ?? []) as Array<{
-		campo: string;
-		de: string;
-		para: string;
-		mono?: boolean;
-	}>);
-	const chefiaNome = $derived((data as any).chefiaNome as string);
+	const plano = $derived(data.plano);
+	const diff = $derived(data.diff ?? []);
+	const chefiaNome = $derived(data.chefiaNome);
 
 	const planoId = $derived(plano?.id ?? '');
 
@@ -25,8 +20,7 @@
 		data_inicio: 'Data de início',
 		data_termino: 'Data de término',
 		carga_horaria_disponivel: 'Carga horária',
-		criterios_avaliacao: 'Critérios de avaliação',
-		trabalho_noturno: 'Trabalho noturno'
+		criterios_avaliacao: 'Critérios de avaliação'
 	};
 
 	function labelCampo(campo: string): string {
