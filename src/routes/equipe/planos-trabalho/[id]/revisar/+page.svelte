@@ -12,7 +12,7 @@
 
 	const plano = $derived(data.plano);
 	const diff = $derived(data.diff ?? []);
-	const chefiaNome = $derived(data.chefiaNome);
+	const participanteNome = $derived(data.participanteNome);
 
 	const planoId = $derived(plano?.id ?? '');
 
@@ -65,7 +65,7 @@
 				}`,
 				{ planoId }
 			);
-			goto('/meu-plano?assinou=ok');
+			goto('/equipe?assinou=ok');
 		} catch (err) {
 			errorMsg = (err as Error).message ?? 'Erro ao assinar.';
 		} finally {
@@ -86,9 +86,9 @@
 		saving = true;
 		errorMsg = null;
 		try {
-			// "No-op": revalida o estado atual passando o mesmo valor de cargaHorariaDisponivel.
-			// O backend trata como UPDATE pelo servidor, zera a assinatura da chefia
-			// e devolve o PT para RASCUNHO_PARTICIPANTE.
+			// "No-op": revalida o estado passando o mesmo cargaHorariaDisponivel.
+			// O backend trata como UPDATE pela chefia, zera a assinatura do servidor
+			// e devolve o PT para o ciclo de revisão do participante.
 			await callMutation(
 				`mutation EditarPlanoTrabalho($planoId: ID!, $input: EditarPlanoTrabalhoInput!) {
 					editarPlanoTrabalho(planoId: $planoId, input: $input) { id status }
@@ -98,7 +98,7 @@
 					input: { cargaHorariaDisponivel: plano.cargaHorariaDisponivel }
 				}
 			);
-			goto(`/meu-plano/${planoId}/editar`);
+			goto(`/equipe/planos-trabalho/${planoId}/editar`);
 		} catch (err) {
 			errorMsg = (err as Error).message ?? 'Erro ao devolver para ajustes.';
 			confirmandoDevolver = false;
@@ -139,7 +139,7 @@
 
 <div class="pg">
 	<div class="crumb">
-		<a href="/meu-plano">Meu Plano</a>
+		<a href="/equipe">Equipe</a>
 		<span class="sep">/</span>
 		<span>{plano?.idPlanoTrabalho ?? planoId} · revisar</span>
 	</div>
@@ -147,18 +147,18 @@
 	<div class="pg-head">
 		<div>
 			<div style="display:flex; gap:10px; align-items:center; margin-bottom:4px">
-				<StatusBadge status="AGUARDANDO_ASSINATURA_PARTICIPANTE" />
+				<StatusBadge status="AGUARDANDO_ASSINATURA_CHEFIA" />
 			</div>
-			<h1 class="pg-title">Revisar seu plano de trabalho</h1>
+			<h1 class="pg-title">Plano de {participanteNome}</h1>
 			<p class="pg-sub">
-				{chefiaNome} ajustou o plano e devolveu para sua revisão. Confira o que mudou.
+				{plano?.idPlanoTrabalho ?? ''} · {fmtPeriodo(plano?.dataInicio, plano?.dataTermino)}
 			</p>
 		</div>
 	</div>
 
 	<OwnershipBanner
 		variant="comigo-revisor"
-		atorOutro={chefiaNome}
+		atorOutro="{participanteNome} (servidor)"
 		mostrarDiff={diff.length > 0}
 	/>
 
@@ -179,7 +179,7 @@
 				<section class="card card-warning-left">
 					<div class="kicker kicker-warning">
 						<Icon name="alert" size={13} />
-						A chefia ajustou {camposLabel}
+						Mudou desde a submissão do servidor: {camposLabel}
 					</div>
 					<div style="margin-top:12px">
 						{#each diff as item}
@@ -197,7 +197,7 @@
 			{/if}
 
 			<section class="card">
-				<div class="card-hd"><h2>Plano completo (leitura)</h2></div>
+				<div class="card-hd"><h2>Plano proposto</h2></div>
 				<div class="kpi-row">
 					<div>
 						<div class="kpi-label">Período</div>
@@ -220,13 +220,11 @@
 				</div>
 
 				<div class="divider"></div>
-				<div class="kicker">Contribuições</div>
+				<div class="kicker">Contribuições propostas</div>
 				<div style="margin-top:10px">
 					{#each (plano?.contribuicoes ?? []) as c (c.id)}
 						<div class="contrib">
-							<span class="contrib-tipo t{c.tipoContribuicao ?? 1}"
-								>{c.tipoContribuicao ?? 1}</span
-							>
+							<span class="contrib-tipo t{c.tipoContribuicao ?? 1}">{c.tipoContribuicao ?? 1}</span>
 							<div style="flex:1">
 								<div class="contrib-desc">{c.descricao}</div>
 							</div>
@@ -237,7 +235,7 @@
 
 				{#if plano?.criteriosAvaliacao}
 					<div class="divider"></div>
-					<div class="kicker">Critérios de avaliação</div>
+					<div class="kicker">Critérios de avaliação propostos</div>
 					<p class="criterios-text">{plano.criteriosAvaliacao}</p>
 				{/if}
 			</section>
@@ -251,7 +249,8 @@
 						<Icon name="alert" size={13} /> Tem certeza?
 					</div>
 					<p class="confirm-text">
-						Isso vai zerar a assinatura de <strong>{chefiaNome}</strong>. Tem certeza?
+						Isso vai zerar a assinatura de <strong>{participanteNome}</strong> e devolver o plano para
+						ajustes. Você quer editar antes de devolver?
 					</p>
 					<div class="confirm-actions">
 						<button
@@ -260,14 +259,14 @@
 							disabled={saving}
 							onclick={confirmarDevolver}
 						>
-							<Icon name="edit" size={14} /> Sim, ajustar
+							<Icon name="edit" size={14} /> Sim, ajustar e devolver
 						</button>
-						<button type="button" class="btn btn-ghost" onclick={cancelarDevolver}>Não</button>
+						<button type="button" class="btn btn-ghost" onclick={cancelarDevolver}>Cancelar</button>
 					</div>
 				</section>
 			{:else}
 				<AssinaturaCard
-					ator="{chefiaNome} (chefia)"
+					ator="{participanteNome} (servidor)"
 					onAssinar={assinar}
 					onDevolver={pedirDevolver}
 				/>
@@ -281,9 +280,9 @@
 							<Icon name="check" size={14} stroke={2.4} />
 						</span>
 						<div style="flex:1">
-							<div class="assina-nome">Chefia · {chefiaNome}</div>
+							<div class="assina-nome">Servidor · {participanteNome}</div>
 							<div class="assina-meta">
-								Assinou em {fmtDataPtBr(plano?.dataAssinaturaChefia)}
+								Assinou em {fmtDataPtBr(plano?.dataAssinaturaParticipante)}
 							</div>
 						</div>
 					</div>
@@ -292,23 +291,22 @@
 							<Icon name="clock" size={13} stroke={2.2} />
 						</span>
 						<div style="flex:1">
-							<div class="assina-nome">Você · {plano?.participante?.nome ?? 'Servidor'}</div>
+							<div class="assina-nome">Você · chefia</div>
 							<div class="assina-pending">Pendente</div>
 						</div>
 					</div>
 				</div>
 			</section>
 
-			<section class="card">
-				<div class="card-hd"><h2 style="font-size:16px">O que acontece</h2></div>
+			<section class="card" style="background:var(--c-info-soft)">
+				<div class="kicker" style="color:var(--c-info)"><Icon name="info" size={13} /> O que acontece</div>
 				<ul class="info-list">
 					<li>
-						<strong>Assinar</strong> ativa o plano (status muda para "Em execução") — você e a chefia
-						ficam pactuados.
+						Se você <strong>assinar</strong>, o plano vira "Em execução" e a pactuação é concluída.
 					</li>
 					<li>
-						<strong>Devolver para ajustes</strong> zera a assinatura da chefia e o plano volta para
-						seu rascunho — você pode editar livremente antes de reenviar.
+						Se você <strong>devolver para ajustes</strong>, a assinatura do servidor é zerada e ele
+						precisa reassinar após os ajustes.
 					</li>
 				</ul>
 			</section>
@@ -464,7 +462,8 @@
 		.kpi-row {
 			grid-template-columns: repeat(2, 1fr);
 		}
-		/* Sticky CTA no rodapé em mobile (AssinaturaCard / devolver). */
+		/* CTA sticky no rodapé em mobile (assinar/devolver).
+		   Escopado à 2ª coluna (sidebar) para não afetar a coluna do plano. */
 		:global(.g-2-1 > .col:nth-child(2) > section.card:first-child) {
 			position: sticky;
 			bottom: 0;

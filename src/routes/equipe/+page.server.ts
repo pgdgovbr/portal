@@ -1,4 +1,5 @@
 import { gqlFetch } from '$lib/graphql';
+import { STATUS_PLANO_INT, type StatusPlano } from '$lib/types';
 import type { PageServerLoad } from './$types';
 
 const QUERY = `
@@ -21,14 +22,19 @@ const QUERY = `
   }
 `;
 
-// Backend returns integer status codes (PGD standard)
-const STATUS_MAP: Record<number, string> = {
-  1: 'EM_ELABORACAO',
-  2: 'AGUARDANDO_APROVACAO',
-  3: 'EM_EXECUCAO',
-  4: 'CONCLUIDO',
-  5: 'CANCELADO',
-};
+/**
+ * Deriva a "ação esperada da chefia" para um plano:
+ *  - "assinar": chefia precisa revisar/assinar
+ *  - "aguardar": bola está com o servidor
+ *  - "ver": plano em execução ou já finalizado
+ */
+export function derivarAcaoChefia(status: StatusPlano | null): 'assinar' | 'aguardar' | 'ver' {
+	if (!status) return 'aguardar';
+	if (status === 'AGUARDANDO_ASSINATURA_CHEFIA' || status === 'RASCUNHO_CHEFIA') return 'assinar';
+	if (status === 'RASCUNHO_PARTICIPANTE' || status === 'AGUARDANDO_ASSINATURA_PARTICIPANTE')
+		return 'aguardar';
+	return 'ver';
+}
 
 export const load: PageServerLoad = async ({ cookies }) => {
 	const token = cookies.get('access_token');
@@ -46,10 +52,12 @@ export const load: PageServerLoad = async ({ cookies }) => {
 		const planoMap: Record<string, any[]> = {};
 		for (const pl of planos) {
 			if (!planoMap[pl.participanteId]) planoMap[pl.participanteId] = [];
+			const statusStr = STATUS_PLANO_INT[pl.status] ?? null;
 			planoMap[pl.participanteId].push({
 				...pl,
-				status: STATUS_MAP[pl.status] ?? String(pl.status),
+				status: statusStr ?? String(pl.status),
 				dataFim: pl.dataTermino,
+				acao: derivarAcaoChefia(statusStr),
 				contribuicoes: (pl.contribuicoes ?? []).map((c: any) => ({
 					...c,
 					registrosExecucao: [], // not exposed in current schema
@@ -64,8 +72,21 @@ export const load: PageServerLoad = async ({ cookies }) => {
 			planosTrabalho: planoMap[p.id] ?? [],
 		}));
 
-		return { participantes: enriched };
+		// Total de PTs aguardando assinatura da chefia (para o banner consolidado)
+		const pendentesChefia = enriched.reduce(
+			(acc, p) =>
+				acc + (p.planosTrabalho?.filter((pl: any) => pl.acao === 'assinar').length ?? 0),
+			0
+		);
+
+		// Primeiro PT pendente (id) para o CTA "Ver primeiro pendente"
+		const primeiroPendenteId: string | null =
+			enriched
+				.flatMap((p: any) => p.planosTrabalho ?? [])
+				.find((pl: any) => pl.acao === 'assinar')?.id ?? null;
+
+		return { participantes: enriched, pendentesChefia, primeiroPendenteId };
 	} catch {
-		return { participantes: [] };
+		return { participantes: [], pendentesChefia: 0, primeiroPendenteId: null };
 	}
 };
