@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { urgencyClass, urgencyLabel, initialsFrom, NOTAS } from './types';
+import {
+	urgencyClass,
+	urgencyLabel,
+	initialsFrom,
+	NOTAS,
+	STATUS_LABELS,
+	STATUS_PLANO_INT,
+	ownershipOfStatus
+} from './types';
+import type { StatusPlano } from './types';
 
 describe('urgencyClass', () => {
 	it('retorna urg-late para daysLeft negativo', () => {
@@ -104,5 +113,79 @@ describe('NOTAS', () => {
 			expect(NOTAS[n as 1 | 2 | 3 | 4 | 5].label).toBeTruthy();
 			expect(NOTAS[n as 1 | 2 | 3 | 4 | 5].color).toBeTruthy();
 		}
+	});
+});
+
+describe('STATUS_PLANO_INT (mapeamento backend → frontend)', () => {
+	it('1 = CANCELADO', () => {
+		expect(STATUS_PLANO_INT[1]).toBe('CANCELADO');
+	});
+	it('2 = AGUARDANDO_ASSINATURA_CHEFIA (antigo APROVADO)', () => {
+		expect(STATUS_PLANO_INT[2]).toBe('AGUARDANDO_ASSINATURA_CHEFIA');
+	});
+	it('3 = EM_EXECUCAO', () => {
+		expect(STATUS_PLANO_INT[3]).toBe('EM_EXECUCAO');
+	});
+	it('4 = CONCLUIDO', () => {
+		expect(STATUS_PLANO_INT[4]).toBe('CONCLUIDO');
+	});
+	it('5 = RASCUNHO_PARTICIPANTE', () => {
+		expect(STATUS_PLANO_INT[5]).toBe('RASCUNHO_PARTICIPANTE');
+	});
+	it('6 = RASCUNHO_CHEFIA', () => {
+		expect(STATUS_PLANO_INT[6]).toBe('RASCUNHO_CHEFIA');
+	});
+	it('7 = AGUARDANDO_ASSINATURA_PARTICIPANTE', () => {
+		expect(STATUS_PLANO_INT[7]).toBe('AGUARDANDO_ASSINATURA_PARTICIPANTE');
+	});
+});
+
+describe('STATUS_LABELS expandido', () => {
+	it('inclui label para RASCUNHO_PARTICIPANTE', () => {
+		expect(STATUS_LABELS.RASCUNHO_PARTICIPANTE).toBeTruthy();
+		expect(STATUS_LABELS.RASCUNHO_PARTICIPANTE.toLowerCase()).toMatch(/rascunho|servidor/);
+	});
+	it('inclui label para RASCUNHO_CHEFIA', () => {
+		expect(STATUS_LABELS.RASCUNHO_CHEFIA).toBeTruthy();
+		expect(STATUS_LABELS.RASCUNHO_CHEFIA.toLowerCase()).toMatch(/rascunho|chefia/);
+	});
+	it('inclui label para AGUARDANDO_ASSINATURA_CHEFIA', () => {
+		expect(STATUS_LABELS.AGUARDANDO_ASSINATURA_CHEFIA).toBeTruthy();
+		expect(STATUS_LABELS.AGUARDANDO_ASSINATURA_CHEFIA.toLowerCase()).toMatch(/chefia|aguard/);
+	});
+	it('inclui label para AGUARDANDO_ASSINATURA_PARTICIPANTE', () => {
+		expect(STATUS_LABELS.AGUARDANDO_ASSINATURA_PARTICIPANTE).toBeTruthy();
+		expect(STATUS_LABELS.AGUARDANDO_ASSINATURA_PARTICIPANTE.toLowerCase()).toMatch(
+			/servidor|aguard|participante/
+		);
+	});
+	it('preserva labels existentes', () => {
+		expect(STATUS_LABELS.EM_EXECUCAO).toBe('Em execução');
+		expect(STATUS_LABELS.CONCLUIDO).toBe('Concluído');
+		expect(STATUS_LABELS.CANCELADO).toBe('Cancelado');
+	});
+});
+
+describe('ownershipOfStatus', () => {
+	it('RASCUNHO_PARTICIPANTE → bola com participante', () => {
+		expect(ownershipOfStatus('RASCUNHO_PARTICIPANTE')).toBe('participante');
+	});
+	it('AGUARDANDO_ASSINATURA_PARTICIPANTE → bola com participante (precisa assinar)', () => {
+		expect(ownershipOfStatus('AGUARDANDO_ASSINATURA_PARTICIPANTE')).toBe('participante');
+	});
+	it('RASCUNHO_CHEFIA → bola com chefia', () => {
+		expect(ownershipOfStatus('RASCUNHO_CHEFIA')).toBe('chefia');
+	});
+	it('AGUARDANDO_ASSINATURA_CHEFIA → bola com chefia (precisa assinar)', () => {
+		expect(ownershipOfStatus('AGUARDANDO_ASSINATURA_CHEFIA')).toBe('chefia');
+	});
+	it('EM_EXECUCAO → null (sem ownership ativo)', () => {
+		expect(ownershipOfStatus('EM_EXECUCAO')).toBeNull();
+	});
+	it('CONCLUIDO → null', () => {
+		expect(ownershipOfStatus('CONCLUIDO')).toBeNull();
+	});
+	it('CANCELADO → null', () => {
+		expect(ownershipOfStatus('CANCELADO')).toBeNull();
 	});
 });

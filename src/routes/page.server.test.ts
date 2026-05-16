@@ -43,11 +43,23 @@ describe('+page.server — load (dashboard)', () => {
 	});
 
 	it('servidor role: returns planosTrabalho and notificacoes', async () => {
-		mockFetchWith({ listarPlanosTrabalho: [mockPlan], minhasNotificacoes: [] });
+		// Workflow novo usa meusPlanosTrabalho com status int
+		const backendPt = {
+			id: '1',
+			status: 3,
+			dataInicio: '2025-01-01',
+			dataTermino: '2025-12-31',
+			cargaHorariaDisponivel: 200,
+			contribuicoes: [],
+			avaliacoes: [],
+		};
+		mockFetchWith({ meusPlanosTrabalho: [backendPt], minhasNotificacoes: [] });
 
-		const result = await load(makeEvent({ role: 'servidor', id: '1', nome: 'Maria' }));
+		const result: any = await load(makeEvent({ role: 'servidor', id: '1', nome: 'Maria' }));
 
-		expect(result).toEqual({ planosTrabalho: [mockPlan], notificacoes: [] });
+		expect(result.planosTrabalho).toHaveLength(1);
+		expect(result.planosTrabalho[0].status).toBe('EM_EXECUCAO');
+		expect(result.notificacoes).toEqual([]);
 	});
 
 	it('servidor role: gqlFetch throws → returns {}', async () => {

@@ -8,11 +8,51 @@ export interface User {
 }
 
 export type StatusPlano =
-	| 'APROVADO'
+	| 'RASCUNHO_PARTICIPANTE'
+	| 'RASCUNHO_CHEFIA'
+	| 'AGUARDANDO_ASSINATURA_CHEFIA'
+	| 'AGUARDANDO_ASSINATURA_PARTICIPANTE'
 	| 'EM_EXECUCAO'
 	| 'CONCLUIDO'
 	| 'AVALIADO'
 	| 'CANCELADO';
+
+export type OwnershipSide = 'participante' | 'chefia' | null;
+
+/**
+ * Mapeamento dos status inteiros do backend (campo `status` em PlanoTrabalho)
+ * para os identificadores de string usados no frontend.
+ *
+ * Valores 1-4 batem com a API PGD Central; 5-7 são internos do PGD Libre.
+ */
+export const STATUS_PLANO_INT: Record<number, StatusPlano> = {
+	1: 'CANCELADO',
+	2: 'AGUARDANDO_ASSINATURA_CHEFIA', // antes "APROVADO" — agora semântico
+	3: 'EM_EXECUCAO',
+	4: 'CONCLUIDO',
+	5: 'RASCUNHO_PARTICIPANTE',
+	6: 'RASCUNHO_CHEFIA',
+	7: 'AGUARDANDO_ASSINATURA_PARTICIPANTE'
+};
+
+/**
+ * Retorna qual lado está com a "bola" da pactuação naquele momento.
+ * - participante: servidor edita ou precisa assinar
+ * - chefia: chefia edita ou precisa assinar
+ * - null: PT já pactuado (EM_EXECUCAO / CONCLUIDO / etc.) ou terminal (CANCELADO)
+ */
+export function ownershipOfStatus(status: StatusPlano): OwnershipSide {
+	switch (status) {
+		case 'RASCUNHO_PARTICIPANTE':
+		case 'AGUARDANDO_ASSINATURA_PARTICIPANTE':
+			return 'participante';
+		case 'RASCUNHO_CHEFIA':
+		case 'AGUARDANDO_ASSINATURA_CHEFIA':
+			return 'chefia';
+		default:
+			return null;
+	}
+}
 
 export type Nota = 1 | 2 | 3 | 4 | 5;
 
@@ -31,7 +71,10 @@ export const NOTAS: Record<Nota, { label: string; color: string; bg: string }> =
 };
 
 export const STATUS_LABELS: Record<StatusPlano, string> = {
-	APROVADO: 'Aprovado',
+	RASCUNHO_PARTICIPANTE: 'Rascunho · servidor',
+	RASCUNHO_CHEFIA: 'Rascunho · chefia',
+	AGUARDANDO_ASSINATURA_CHEFIA: 'Aguardando chefia',
+	AGUARDANDO_ASSINATURA_PARTICIPANTE: 'Aguardando servidor',
 	EM_EXECUCAO: 'Em execução',
 	CONCLUIDO: 'Concluído',
 	AVALIADO: 'Avaliado',

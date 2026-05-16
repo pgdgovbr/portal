@@ -1,11 +1,13 @@
 import { load } from './+page.server';
 
-const mockNotif = {
+// Backend retorna shape do schema atual; o server map para o formato do componente
+const mockBackendNotif = {
 	id: '1',
-	titulo: 'Avaliação pendente',
-	corpo: 'Você tem uma avaliação para realizar.',
-	lida: false,
-	criadaEm: '2025-05-01T08:00:00Z',
+	tipoEvento: 'AVALIACAO_REALIZADA',
+	conteudo: 'Você tem uma avaliação para realizar.',
+	enviada: true,
+	enviadaEm: '2025-05-01T08:00:00Z',
+	createdAt: '2025-05-01T08:00:00Z',
 };
 
 function makeFetchWith(data: Record<string, unknown>) {
@@ -29,12 +31,17 @@ describe('+page.server — load (notificacoes)', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('with notifications → returns { notificacoes: [mockNotif] }', async () => {
-		makeFetchWith({ minhasNotificacoes: [mockNotif] });
+	it('with notifications → mapeia para shape { id, titulo, corpo, lida, criadaEm }', async () => {
+		makeFetchWith({ minhasNotificacoes: [mockBackendNotif] });
 
 		const result = await load(makeEvent());
 
-		expect(result).toEqual({ notificacoes: [mockNotif] });
+		expect(result.notificacoes).toHaveLength(1);
+		expect(result.notificacoes[0].id).toBe('1');
+		// AVALIACAO_REALIZADA é traduzido pelo server
+		expect(result.notificacoes[0].titulo).toMatch(/avalia/i);
+		expect(result.notificacoes[0].corpo).toBe(mockBackendNotif.conteudo);
+		expect(result.notificacoes[0].lida).toBe(true); // enviadaEm preenchida
 	});
 
 	it('empty list → returns { notificacoes: [] }', async () => {

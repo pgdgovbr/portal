@@ -2,9 +2,10 @@
 	interface Props {
 		name: string;
 		size?: number;
+		stroke?: number;
 		class?: string;
 	}
-	let { name, size = 18, class: cls = '' }: Props = $props();
+	let { name, size = 18, stroke = 2, class: cls = '' }: Props = $props();
 
 	const ICONS: Record<string, string> = {
 		home: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9zM9 22V12h6v10',
@@ -60,7 +61,7 @@
 	viewBox="0 0 24 24"
 	fill="none"
 	stroke="currentColor"
-	stroke-width="2"
+	stroke-width={stroke}
 	stroke-linecap="round"
 	stroke-linejoin="round"
 	aria-hidden="true"

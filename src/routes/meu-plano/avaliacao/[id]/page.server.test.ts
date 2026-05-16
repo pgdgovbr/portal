@@ -1,14 +1,23 @@
 import { load } from './+page.server';
 
-const mockRegistro = {
+// Backend retorna ARE (flat) — o server map para o shape do componente
+const mockBackendARE = {
 	id: '42',
-	status: 'ENVIADO',
-	periodoInicio: '2025-01-01',
-	periodoFim: '2025-01-31',
-	descricaoAtividades: 'Atividade A',
+	idPeriodoAvaliativo: 'ARE-001',
+	dataInicioPeriodoAvaliativo: '2025-01-01',
+	dataFimPeriodoAvaliativo: '2025-01-31',
+	descricaoExecucao: 'Atividade A',
 	ocorrencias: null,
-	dataEnvio: '2025-02-01',
-	avaliacoes: [],
+	dataRegistroParticipante: '2025-02-01',
+	avaliacaoRegistrosExecucao: null,
+	dataAvaliacaoRegistrosExecucao: null,
+	avaliacaoJustificativa: null,
+	statusRecurso: null,
+	recursoTexto: null,
+	recursoData: null,
+	recursoDecisao: null,
+	recursoDecisaoJustificativa: null,
+	recursoDecisaoData: null,
 };
 
 function makeFetchWith(data: Record<string, unknown>) {
@@ -33,12 +42,16 @@ describe('+page.server — load (avaliacao [id])', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('fetch resolves with registro → returns { registro: mockRegistro }', async () => {
-		makeFetchWith({ registroExecucao: mockRegistro });
+	it('fetch resolves with registro → returns shape mapeado para componente', async () => {
+		makeFetchWith({ registroExecucao: mockBackendARE });
 
-		const result = await load(makeEvent());
+		const result: any = await load(makeEvent());
 
-		expect(result).toEqual({ registro: mockRegistro });
+		expect(result.registro).toBeTruthy();
+		expect(result.registro.id).toBe('42');
+		expect(result.registro.periodoInicio).toBe('2025-01-01');
+		expect(result.registro.descricaoAtividades).toBe('Atividade A');
+		expect(result.registro.dataEnvio).toBe('2025-02-01');
 	});
 
 	it('fetch throws → returns { registro: null }', async () => {
