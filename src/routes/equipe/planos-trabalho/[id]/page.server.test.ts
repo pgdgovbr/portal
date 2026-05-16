@@ -14,49 +14,54 @@ function makeLoadEvent(id: string, token?: string) {
 	} as unknown as Parameters<typeof load>[0];
 }
 
-const mockPlano = {
+// Raw data as backend returns (backend field names)
+const rawPt = {
 	id: '99',
-	status: 'APROVADO',
+	participanteId: '10',
+	status: 3, // EM_EXECUCAO
 	dataInicio: '2024-01-01',
+	dataTermino: '2024-12-31',
+	cargaHorariaDisponivel: 160,
+	criteriosAvaliacao: 'Critério X',
+	contribuicoes: [],
+};
+const rawParticipante = { id: '10', nome: 'João Silva', matriculaSiape: '123456', email: 'joao@gov.br' };
+
+// Expected plano shape after load() transforms
+const expectedPlano = {
+	...rawPt,
+	status: 'EM_EXECUCAO',
 	dataFim: '2024-12-31',
 	totalHorasDisponiveis: 160,
 	modalidade: 'TELETRABALHO_PARCIAL',
-	unidadeAutorizadoraNome: 'SEGES',
-	criteriosAvaliacao: 'Critério X',
-	participante: { id: '1', nome: 'João Silva', siape: '123456', email: 'joao@gov.br' },
+	unidadeAutorizadoraNome: 'SEGES/MGI',
 	contribuicoes: [],
+	participante: { ...rawParticipante, siape: '123456' },
 };
+
+function mockFetch(ptData: unknown, participantes: unknown[] = [rawParticipante]) {
+	return vi.fn(async () =>
+		new Response(
+			JSON.stringify({ data: { planoTrabalho: ptData, listarParticipantes: participantes }, errors: null }),
+			{ status: 200, headers: { 'Content-Type': 'application/json' } }
+		)
+	);
+}
 
 describe('+page.server (planos-trabalho/[id]) — load', () => {
 	afterEach(() => {
 		vi.unstubAllGlobals();
 	});
 
-	it('plano encontrado → retorna { plano: mockPlano }', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi.fn(async () =>
-				new Response(
-					JSON.stringify({ data: { planoTrabalho: mockPlano }, errors: null }),
-					{ status: 200, headers: { 'Content-Type': 'application/json' } }
-				)
-			)
-		);
+	it('plano encontrado → retorna { plano } com campos transformados', async () => {
+		vi.stubGlobal('fetch', mockFetch(rawPt));
 
 		const result = await load(makeLoadEvent('99', 'fake-token'));
-		expect(result).toEqual({ plano: mockPlano });
+		expect(result).toEqual({ plano: expectedPlano });
 	});
 
 	it('planoTrabalho null → lança error 404', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi.fn(async () =>
-				new Response(
-					JSON.stringify({ data: { planoTrabalho: null }, errors: null }),
-					{ status: 200, headers: { 'Content-Type': 'application/json' } }
-				)
-			)
-		);
+		vi.stubGlobal('fetch', mockFetch(null, []));
 
 		await expect(load(makeLoadEvent('999', 'fake-token'))).rejects.toMatchObject({
 			status: 404,
@@ -66,9 +71,7 @@ describe('+page.server (planos-trabalho/[id]) — load', () => {
 	it('gqlFetch lança erro (HTTP 500) → lança error 500', async () => {
 		vi.stubGlobal(
 			'fetch',
-			vi.fn(async () =>
-				new Response('Internal Server Error', { status: 500 })
-			)
+			vi.fn(async () => new Response('Internal Server Error', { status: 500 }))
 		);
 
 		await expect(load(makeLoadEvent('99', 'fake-token'))).rejects.toMatchObject({
@@ -95,9 +98,7 @@ describe('+page.server (planos-trabalho/[id]) — load', () => {
 	it('sem token → gqlFetch chamado sem Cookie header; lança 500 se falhar', async () => {
 		vi.stubGlobal(
 			'fetch',
-			vi.fn(async () =>
-				new Response('Internal Server Error', { status: 500 })
-			)
+			vi.fn(async () => new Response('Internal Server Error', { status: 500 }))
 		);
 
 		await expect(load(makeLoadEvent('99', undefined))).rejects.toMatchObject({
@@ -106,21 +107,15 @@ describe('+page.server (planos-trabalho/[id]) — load', () => {
 	});
 
 	it('sem token mas plano acessível → retorna { plano }', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({ data: { planoTrabalho: mockPlano }, errors: null }),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } }
-			)
-		);
+		const fetchMock = mockFetch(rawPt);
 		vi.stubGlobal('fetch', fetchMock);
 
 		const result = await load(makeLoadEvent('99', undefined));
 
-		// No Cookie header should be set (no token)
 		const callArgs = fetchMock.mock.calls[0] as unknown[];
 		const headers = (callArgs[1] as RequestInit).headers as Record<string, string>;
 		expect(headers['Cookie']).toBeUndefined();
 
-		expect(result).toEqual({ plano: mockPlano });
+		expect(result).toEqual({ plano: expectedPlano });
 	});
 });

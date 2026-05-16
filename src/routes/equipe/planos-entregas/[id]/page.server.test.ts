@@ -1,14 +1,28 @@
 import { load } from './+page.server';
 
-const mockPlano = {
+// Raw data as backend returns (backend field names)
+const rawPe = {
 	id: '42',
-	titulo: 'Plano Teste',
-	status: 'ATIVO',
+	idPlanoEntregas: 'PE-2025-001',
+	status: 2, // AGUARDANDO_APROVACAO
 	dataInicio: '2025-01-01',
+	dataTermino: '2025-12-31',
+	avaliacao: null,
+	dataAvaliacao: null,
+	codUnidadeAutorizadora: 100,
+	codUnidadeInstituidora: 200,
+	codUnidadeExecutora: 300,
+};
+
+// Expected plano shape after load() transforms
+const expectedPlano = {
+	...rawPe,
+	status: 'AGUARDANDO_APROVACAO',
+	titulo: 'PE-2025-001',
 	dataFim: '2025-12-31',
-	unidadeNome: 'Unidade X',
+	unidadeNome: 'Unidade 300',
 	entregas: [],
-	timeline: []
+	timeline: [],
 };
 
 function makeEvent(id = '42', token = 'fake-token') {
@@ -23,19 +37,19 @@ describe('+page.server planos-entregas/[id] — load', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('fetch resolve com planoEntregas → retorna { plano: mockPlano }', async () => {
+	it('fetch resolve com planoEntregas → retorna { plano } com campos transformados', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () =>
 				new Response(
-					JSON.stringify({ data: { planoEntregas: mockPlano }, errors: null }),
+					JSON.stringify({ data: { planoEntregas: rawPe }, errors: null }),
 					{ status: 200, headers: { 'Content-Type': 'application/json' } }
 				)
 			)
 		);
 
 		const result = await load(makeEvent());
-		expect(result).toEqual({ plano: mockPlano });
+		expect(result).toEqual({ plano: expectedPlano });
 	});
 
 	it('planoEntregas null na resposta → lança error com status 404', async () => {

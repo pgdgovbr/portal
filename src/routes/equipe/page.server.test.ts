@@ -13,26 +13,29 @@ function makeLoadEvent(token?: string) {
 	} as unknown as Parameters<typeof load>[0];
 }
 
-const mockP = { id: '1', nome: 'João Silva', siape: '123456', email: 'joao@gov.br' };
+// Backend returns matriculaSiape (not siape)
+const mockPInput = { id: '1', nome: 'João Silva', matriculaSiape: '123456', email: 'joao@gov.br' };
+// Load function adds siape alias and planosTrabalho
+const mockPOutput = { ...mockPInput, siape: '123456', planosTrabalho: [] };
 
 describe('+page.server (equipe) — load', () => {
 	afterEach(() => {
 		vi.unstubAllGlobals();
 	});
 
-	it('com participantes → retorna { participantes: [mockP] }', async () => {
+	it('com participantes → retorna { participantes } com siape e planosTrabalho', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () =>
 				new Response(
-					JSON.stringify({ data: { listarParticipantes: [mockP] }, errors: null }),
+					JSON.stringify({ data: { listarParticipantes: [mockPInput], listarPlanosTrabalho: [] }, errors: null }),
 					{ status: 200, headers: { 'Content-Type': 'application/json' } }
 				)
 			)
 		);
 
 		const result = await load(makeLoadEvent('fake-token'));
-		expect(result).toEqual({ participantes: [mockP] });
+		expect(result).toEqual({ participantes: [mockPOutput] });
 	});
 
 	it('lista vazia → retorna { participantes: [] }', async () => {
@@ -40,7 +43,7 @@ describe('+page.server (equipe) — load', () => {
 			'fetch',
 			vi.fn(async () =>
 				new Response(
-					JSON.stringify({ data: { listarParticipantes: [] }, errors: null }),
+					JSON.stringify({ data: { listarParticipantes: [], listarPlanosTrabalho: [] }, errors: null }),
 					{ status: 200, headers: { 'Content-Type': 'application/json' } }
 				)
 			)
@@ -65,7 +68,7 @@ describe('+page.server (equipe) — load', () => {
 	it('sem token → gqlFetch chamado com undefined; retorna resultado do servidor', async () => {
 		const fetchMock = vi.fn(async () =>
 			new Response(
-				JSON.stringify({ data: { listarParticipantes: [mockP] }, errors: null }),
+				JSON.stringify({ data: { listarParticipantes: [mockPInput], listarPlanosTrabalho: [] }, errors: null }),
 				{ status: 200, headers: { 'Content-Type': 'application/json' } }
 			)
 		);
@@ -73,14 +76,12 @@ describe('+page.server (equipe) — load', () => {
 
 		const result = await load(makeLoadEvent(undefined));
 
-		// fetch should have been called (gqlFetch did not crash)
 		expect(fetchMock).toHaveBeenCalledOnce();
 
-		// No Cookie header should have been set (no token)
 		const callArgs = fetchMock.mock.calls[0] as unknown[];
 		const headers = (callArgs[1] as RequestInit).headers as Record<string, string>;
 		expect(headers['Cookie']).toBeUndefined();
 
-		expect(result).toEqual({ participantes: [mockP] });
+		expect(result).toEqual({ participantes: [mockPOutput] });
 	});
 });

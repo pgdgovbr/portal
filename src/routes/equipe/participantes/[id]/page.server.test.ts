@@ -1,17 +1,25 @@
 import { load } from './+page.server';
 
-const mockParticipante = {
+// Raw data as backend returns (backend field names only)
+const rawParticipante = {
 	id: '42',
 	nome: 'Maria Souza',
-	siape: '654321',
-	cpf: '000.000.000-00',
+	matriculaSiape: '654321',
 	email: 'maria@gov.br',
-	cargo: 'Analista',
-	unidadeNome: 'Unidade Y',
-	modalidadeExecucao: 'TELETRABALHO',
-	chefiaImediata: null,
+	modalidadeExecucao: 1,
+	situacao: 1,
+	tipoVinculo: 'SERVIDOR_EFETIVO',
+	codUnidadeAutorizadora: 100,
+	codUnidadeLotacao: 200,
+	dataAssinaturaTcr: '2024-01-01',
+};
+
+// Expected shape after load() transforms
+const expectedParticipante = {
+	...rawParticipante,
+	siape: '654321',
 	planosTrabalho: [],
-	afastamentos: []
+	afastamentos: [],
 };
 
 function makeEvent(id = '42', token = 'fake-token') {
@@ -26,19 +34,19 @@ describe('+page.server participantes/[id] — load', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('fetch resolve com participante → retorna { participante: mockParticipante }', async () => {
+	it('fetch resolve com participante → retorna { participante } com campos transformados', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () =>
 				new Response(
-					JSON.stringify({ data: { participante: mockParticipante }, errors: null }),
+					JSON.stringify({ data: { participante: rawParticipante, listarPlanosTrabalho: [] }, errors: null }),
 					{ status: 200, headers: { 'Content-Type': 'application/json' } }
 				)
 			)
 		);
 
 		const result = await load(makeEvent());
-		expect(result).toEqual({ participante: mockParticipante });
+		expect(result).toEqual({ participante: expectedParticipante });
 	});
 
 	it('participante null na resposta → lança error com status 404', async () => {
@@ -46,7 +54,7 @@ describe('+page.server participantes/[id] — load', () => {
 			'fetch',
 			vi.fn(async () =>
 				new Response(
-					JSON.stringify({ data: { participante: null }, errors: null }),
+					JSON.stringify({ data: { participante: null, listarPlanosTrabalho: [] }, errors: null }),
 					{ status: 200, headers: { 'Content-Type': 'application/json' } }
 				)
 			)

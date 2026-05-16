@@ -12,7 +12,9 @@ const mockPlan = {
 	contribuicoes: [],
 };
 
-const mockUser = { id: '99', nome: 'João Gestor', siape: '7654321' };
+// Backend returns matriculaSiape; load() adds siape alias and planosTrabalho
+const mockUserInput = { id: '99', nome: 'João Gestor', matriculaSiape: '7654321' };
+const mockUserOutput = { ...mockUserInput, siape: '7654321', planosTrabalho: [] };
 
 function makeCookies(token = 'fake-token') {
 	return { get: vi.fn().mockReturnValue(token) };
@@ -60,11 +62,11 @@ describe('+page.server — load (dashboard)', () => {
 	});
 
 	it('chefe_imediato role: returns participantes and avaliacoesPendentes', async () => {
-		mockFetchWith({ listarParticipantes: [mockUser], avaliacoesPendentes: [] });
+		mockFetchWith({ listarParticipantes: [mockUserInput], listarPlanosTrabalho: [] });
 
 		const result = await load(makeEvent({ role: 'chefe_imediato', id: '2', nome: 'Carlos' }));
 
-		expect(result).toEqual({ participantes: [mockUser], avaliacoesPendentes: [] });
+		expect(result).toEqual({ participantes: [mockUserOutput], avaliacoesPendentes: [] });
 	});
 
 	it('no user (not logged in) → returns {}', async () => {
