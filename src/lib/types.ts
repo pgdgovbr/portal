@@ -24,10 +24,10 @@ export interface NavItem {
 
 export const NOTAS: Record<Nota, { label: string; color: string; bg: string }> = {
 	1: { label: 'Excepcional', color: '#0C4A1A', bg: '#E2F2E4' },
-	2: { label: 'Alto', color: '#168821', bg: '#E2F2E4' },
+	2: { label: 'Alto desempenho', color: '#168821', bg: '#E2F2E4' },
 	3: { label: 'Adequado', color: '#0F3D8C', bg: '#E6EEF8' },
-	4: { label: 'Inadequado', color: '#C77400', bg: '#FCF1DC' },
-	5: { label: 'Não executado', color: '#B91C1C', bg: '#FBE6E6' }
+	4: { label: 'Insuficiente', color: '#C77400', bg: '#FCF1DC' },
+	5: { label: 'Insatisfatório', color: '#B91C1C', bg: '#FBE6E6' }
 };
 
 export const STATUS_LABELS: Record<StatusPlano, string> = {
@@ -46,23 +46,20 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export function urgencyClass(daysLeft: number): string {
-	if (daysLeft < 0) return 'urg-late';
+	if (daysLeft <= 0) return 'urg-late';
 	if (daysLeft <= 7) return 'urg-warn';
 	return 'urg-ok';
 }
 
 export function urgencyLabel(daysLeft: number): string {
-	if (daysLeft < 0) return `Vencido há ${Math.abs(daysLeft)} dias`;
+	if (daysLeft < 0) return `Vencido há ${Math.abs(daysLeft)} ${Math.abs(daysLeft) === 1 ? 'dia' : 'dias'}`;
 	if (daysLeft === 0) return 'Vence hoje';
-	if (daysLeft === 1) return 'Vence amanhã';
-	return `${daysLeft} dias`;
+	return `${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}`;
 }
 
 export function initialsFrom(name: string): string {
-	return name
-		.split(' ')
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((w) => w[0].toUpperCase())
-		.join('');
+	const words = name.trim().split(/\s+/).filter(Boolean);
+	if (words.length === 0) return '??';
+	if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+	return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }

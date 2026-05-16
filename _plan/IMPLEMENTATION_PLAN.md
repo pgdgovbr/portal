@@ -1,370 +1,515 @@
-# Plano — Portal SvelteKit (PGD Libre Frontend)
+# Plano — Portal SvelteKit (PGD Libre Frontend) — TDD-First
 
 ## Contexto
 
-O backend do PGD Libre está estável e rodando em produção (`https://pgd-libre-klvx64dufq-rj.a.run.app`). O design foi finalizado no Claude Design: 25 telas desktop + 5 mobile, arquivos extraídos em `portal/_plan/pgd-libre/project/`. A pasta `portal/` existe mas não tem projeto SvelteKit ainda — apenas os artefatos de design em `_plan/`.
+Backend estável em produção (`https://pgd-libre-klvx64dufq-rj.a.run.app`) e rodável
+localmente via `docker-compose` em `/Users/nitai/dev/destaquesgovbr/pgd-libre/pgd-libre/`.
 
-Stack confirmada: **SvelteKit** + **urql** (GraphQL) + **graphql-codegen** (TypeScript types). Sem library de UI externa — componentes próprios a partir do `ui.jsx` do design.
+Stack confirmada: **SvelteKit** + **urql** (GraphQL) + **graphql-codegen** (TypeScript types).
+Sem library de UI externa — componentes próprios a partir do design em `portal/_plan/`.
 
 ---
 
-## Fase 1 — Scaffolding do projeto SvelteKit
+## Regras TDD
 
-### 1.1 Criar projeto
+1. **RED** — escrever o teste que descreve o comportamento esperado (falha).
+2. **GREEN** — escrever o mínimo de código para o teste passar.
+3. **REFACTOR** — limpar sem quebrar testes.
+4. **Nunca avançar de fase com testes vermelhos.**
+5. Cada fase termina com `npm test` e `npm run test:e2e` 100% verde.
+
+---
+
+## Stack de Testes
+
+| Camada | Ferramenta | Uso |
+|--------|-----------|-----|
+| Unitário/componente | **Vitest** + `@testing-library/svelte` | Funções puras, componentes Svelte |
+| E2E | **Playwright** | Fluxos completos com backend real |
+| Backend local | **docker-compose** | PostgreSQL + FastAPI rodando em :8000 |
+| Auth de teste | `POST /auth/dev-login` | Endpoint backend (só ENVIRONMENT≠production) |
+
+---
+
+## Fase 0 — Infraestrutura de Testes
+
+> Pré-requisito de tudo. Não existe "Fase 1" sem esta fase verde.
+
+### 0.1 Instalar dependências de teste
 
 ```bash
-cd /Users/nitai/dev/destaquesgovbr/pgd-libre
-npm create svelte@latest portal -- --template skeleton --types typescript --no-prettier --no-eslint --no-playwright
 cd portal
-npm install
+
+# Vitest + Testing Library
+npm install -D vitest @vitest/coverage-v8 \
+  @testing-library/svelte @testing-library/jest-dom \
+  jsdom
+
+# Playwright
+npm install -D @playwright/test
+npx playwright install chromium
 ```
 
-Instalar dependências:
-```bash
-npm install @urql/svelte graphql
-npm install -D @graphql-codegen/cli @graphql-codegen/client-preset
-```
+### 0.2 Configurar Vitest
 
-### 1.2 Configurar `svelte.config.js`
-
-- Adapter: `@sveltejs/adapter-node` (Cloud Run roda Node)
-- Alias `$lib` para `src/lib`
-
-```bash
-npm install -D @sveltejs/adapter-node
-```
-
-### 1.3 Variáveis de ambiente
-
-`portal/.env.example` (não commitar `.env`):
-```
-PUBLIC_GRAPHQL_URL=https://pgd-libre-klvx64dufq-rj.a.run.app/graphql
-PUBLIC_BACKEND_URL=https://pgd-libre-klvx64dufq-rj.a.run.app
-```
-
-### 1.4 Exportar schema GraphQL e gerar types
-
-```bash
-# No repo pgd-libre:
-source .venv/bin/activate
-strawberry export-schema src.main:app > portal/schema.graphql
-
-# No portal:
-cd portal
-npx graphql-codegen --config codegen.ts
-```
-
-`portal/codegen.ts`:
+`portal/vitest.config.ts`:
 ```ts
-import type { CodegenConfig } from '@graphql-codegen/cli';
-export default {
-  schema: './schema.graphql',
-  documents: ['src/**/*.svelte', 'src/**/*.ts'],
-  generates: {
-    'src/lib/gql/': { preset: 'client' }
-  }
-} satisfies CodegenConfig;
+import { defineConfig } from 'vitest/config';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+
+export default defineConfig({
+  plugins: [svelte({ hot: !process.env.VITEST })],
+  test: {
+    include: ['src/**/*.test.ts'],
+    environment: 'jsdom',
+    setupFiles: ['src/test-setup.ts'],
+    globals: true,
+  },
+  resolve: { alias: { $lib: '/src/lib' } },
+});
 ```
 
----
-
-## Fase 2 — Design Tokens
-
-**Origem:** `portal/_plan/pgd-libre/project/tokens.css`  
-**Destino:** `portal/src/app.css`
-
-Copiar `tokens.css` integralmente como base do `app.css`. Adicionar:
-- Import das fontes Public Sans e Manrope via Google Fonts
-- Reset CSS minimalista
-- Estratégia `data-density` no `<html>` (default: sem atributo = "confortavel")
-
-Valores chave a preservar:
-- `--c-primary: #0F3D8C`, `--c-success: #168821`
-- `--r-lg: 16px` (cards), `--r-pill: 999px` (urgency pills)
-- Notas: 1=`#0C4A1A` / 2=`#168821` / 3=`#0F3D8C` / 4=`#C77400` / 5=`#B91C1C`
-- Status: cancelado=`#6B7280` / aprovado=`#0F3D8C` / execução=`#168821` / concluído=`#0C4A1A` / avaliado=`#5C2D91`
-
----
-
-## Fase 3 — Biblioteca de Componentes (`src/lib/components/`)
-
-Converter `ui.jsx` mantendo as APIs do protótipo. Cada componente é um arquivo `.svelte`.
-
-### Componentes prioritários (P0)
-
-| Componente | Props | Notas |
-|---|---|---|
-| `Icon.svelte` | `name: string, size?: number` | Biblioteca SVG interna — copiar paths de `ui.jsx` |
-| `TopNav.svelte` | `role: UserRole` | Navegação horizontal; itens variam por papel |
-| `StatusBadge.svelte` | `status: string` | Pílula com cor do design system |
-| `NotaBadge.svelte` | `nota: 1\|2\|3\|4\|5` | Badge colorido por nota |
-| `UrgencyPill.svelte` | `daysLeft: number` | Verde >7d / amarelo ≤7d / vermelho vencido |
-| `NotaSelector.svelte` | `bind:value: number` | Blocos coloridos — Variante A (decisão final do design) |
-| `StatusTimeline.svelte` | `items: TimelineItem[]` | Passado (check) / presente (halo) / futuro (vazio) |
-| `Stepper.svelte` | `steps: string[], current: number` | Wizard de criação de plano |
-
-### Componentes P1
-
-| Componente | Props |
-|---|---|
-| `ModalidadeBadge.svelte` | `modalidade: string` |
-| `Spark.svelte` | `data: number[]` | Sparkline |
-| `DataTable.svelte` | Tabela genérica com sort/filter |
-
-### Estrutura de arquivos
-
-```
-src/lib/
-  components/
-    Icon.svelte
-    TopNav.svelte
-    StatusBadge.svelte
-    NotaBadge.svelte
-    ModalidadeBadge.svelte
-    UrgencyPill.svelte
-    NotaSelector.svelte
-    StatusTimeline.svelte
-    Stepper.svelte
-    Spark.svelte
-    DataTable.svelte
-  gql/             ← gerado pelo codegen
-  stores/
-    user.ts        ← store reativo do usuário logado
-  utils/
-    urgency.ts     ← calcular daysLeft e cor
-    nota.ts        ← mapeamento nota → label/cor
-```
-
----
-
-## Fase 4 — Autenticação e Contexto de Usuário
-
-### 4.1 Rota raiz redireciona para login
-
-`src/hooks.server.ts`: se não há cookie `access_token`, redirecionar para `{PUBLIC_BACKEND_URL}/auth/login/google`.
-
+`portal/src/test-setup.ts`:
 ```ts
-// src/hooks.server.ts
-export const handle = async ({ event, resolve }) => {
-  const token = event.cookies.get('access_token');
-  if (!token && !event.url.pathname.startsWith('/auth')) {
-    return Response.redirect(`${BACKEND_URL}/auth/login/google`);
-  }
-  return resolve(event);
-};
+import '@testing-library/jest-dom';
 ```
 
-### 4.2 Query `me` no layout raiz
+### 0.3 Configurar Playwright
 
-`src/routes/+layout.server.ts`: executar query `{ me { id email name role } }` com o cookie, injetar no `$page.data`. Redireciona para login se 401.
+`portal/playwright.config.ts`:
+```ts
+import { defineConfig, devices } from '@playwright/test';
 
-### 4.3 Store de usuário
-
-`src/lib/stores/user.ts`: writable store populado pelo layout. Usado pelo `TopNav` para selecionar itens.
-
----
-
-## Fase 5 — Estrutura de Rotas
-
-```
-src/routes/
-  +layout.svelte          ← TopNav + slot + data-density no <html>
-  +layout.server.ts       ← query me, injeta user
-  +page.svelte            ← Dashboard (adapta por role)
-  
-  meu-plano/
-    +page.svelte            ← Meu Plano de Trabalho (tela 2)
-    registrar/
-      +page.svelte          ← Registrar Execução wizard 4 steps (tela 3)
-    avaliacao/[id]/
-      +page.svelte          ← Detalhe da avaliação (tela 4)
-      recurso/
-        +page.svelte        ← Contestar avaliação (tela 5)
-  
-  equipe/
-    +page.svelte            ← Lista da Equipe — tabela/kanban/cards (tela 8)
-    participantes/[id]/
-      +page.svelte          ← Perfil do participante — 5 abas (tela 12/P2)
-    planos-trabalho/
-      novo/
-        +page.svelte        ← Wizard 5 steps criar plano (telas 13-17)
-      [id]/
-        +page.svelte        ← Detalhe do plano (visão chefia) (tela 10)
-    planos-entregas/[id]/
-      +page.svelte          ← Criar/editar entregas da unidade (tela 9)
-  
-  conformidade/
-    +page.svelte            ← Painel de conformidade (tela 22)
-    erro/[id]/
-      +page.svelte          ← Drill-down erro sync (tela 23)
-  
-  relatorios/
-    +page.svelte            ← 6 cards + relatório inline (tela 19)
-  
-  admin/
-    participantes/
-      +page.svelte          ← Lista de participantes (tela 20)
-      novo/
-        +page.svelte        ← Cadastrar participante (tela 21)
-    institucional/
-      +page.svelte          ← Unidades/atos/parâmetros (tela 24)
-  
-  notificacoes/
-    +page.svelte            ← Inbox (tela 25)
+export default defineConfig({
+  testDir: './e2e',
+  fullyParallel: false,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:5173',
+    trace: 'on-first-retry',
+  },
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  globalSetup: './e2e/global-setup.ts',
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+  },
+});
 ```
 
----
+### 0.4 Endpoint dev-login no backend
 
-## Fase 6 — Implementação das Telas (ordem de prioridade)
+Adicionar ao backend `src/auth/router.py`:
+```python
+@router.post("/dev-login")
+async def dev_login(
+    email: str, role: str = "servidor", response: Response,
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """Só funciona fora de production. Cria usuário e retorna cookie."""
+    if get_settings().ENVIRONMENT == "production":
+        raise HTTPException(403, "Not available in production")
+    # criar ou recuperar usuário
+    # set cookie access_token
+    # return {"ok": True}
+```
 
-### P0 — Bloqueia o MVP
+### 0.5 Playwright global-setup
 
-**Sequência de implementação:**
+`portal/e2e/global-setup.ts`:
+```ts
+// Chama POST /auth/dev-login, salva storageState em e2e/.auth/*.json
+// Um estado por papel: servidor, chefe, gestor, admin
+```
 
-1. **`+layout.svelte`** — TopNav com navegação por papel, slot de conteúdo, `data-density` padrão "confortavel"
+### 0.6 Scripts npm
 
-2. **`/` Dashboard** (tela 1) — Role-adaptive:
-   - Servidor: banner urgência, plano ativo, avaliação recebida, próximos prazos
-   - Chefia: KPIs do time, avaliações priorizadas
-   - Gestor: visão consolidada multi-unidade
-   - Admin: atalhos rápidos
-   - Query: `{ me { ... } listarPlanosTrabalho(...) minhasNotificacoes(...) }`
+```json
+"scripts": {
+  "test":        "vitest run",
+  "test:watch":  "vitest",
+  "test:e2e":    "playwright test",
+  "test:all":    "npm test && npm run test:e2e"
+}
+```
 
-3. **`/meu-plano`** (tela 2) — KPIs do plano, contribuições, histórico de períodos
-   - Query: `listarPlanosTrabalho(participante_id: me.id)`
-
-4. **`/meu-plano/registrar`** (tela 3) — Wizard 4 steps com auto-save
-   - Step 1: período (data início/fim)
-   - Step 2: campo texto "O que fiz"
-   - Step 3: ocorrências (opcional)
-   - Step 4: revisão e envio
-   - Mutation: `registrarExecucao`
-
-5. **`/equipe`** (tela 8) — Lista 12+ servidores, 3 views (tabela/kanban/cards), filtros
-   - Query: `listarParticipantes(unidade_autorizadora_id: ...)`
-
-6. **`/equipe/planos-trabalho/[id]`** (tela 10) — Detalhe do plano (visão chefia)
-   - Query: `planoTrabalho(id)` com contribuições e histórico
-
-7. **Avaliar Registro** (tela 11) — Split-view: descrição readonly + form avaliação
-   - `NotaSelector` (blocos coloridos, Variante A)
-   - Justificativa obrigatória para notas 1, 4 e 5
-   - Mutation: `avaliarRegistrosExecucao`
-
-### P1 — Core, não bloqueia
-
-8. **`/equipe/planos-trabalho/novo`** — Wizard 5 steps criar plano
-9. **`/admin/participantes/novo`** — Cadastrar participante com validação lateral
-10. **`/conformidade`** — Painel sync API Central
-11. **`/relatorios`** — 6 cards + relatório inline "Sem plano"
-
-### P2 — Completa o sistema
-
-12. **`/meu-plano/avaliacao/[id]/recurso`** — Contestar avaliação
-13. **`/admin/institucional`** — Tabs: unidades / atos normativos / parâmetros
-14. **`/notificacoes`** — Inbox
-15. **`/equipe/participantes/[id]`** — Perfil completo 5 abas
-16. **`/equipe/planos-entregas/[id]`** — Criar/editar entregas
+**✅ Fase 0 DONE quando:** `npm test` passa (0 testes, só infra ok) + `npm run test:e2e` abre o browser e fecha sem erro.
 
 ---
 
-## Fase 7 — Mobile
+## Fase 1 — Tipos e Utilitários
 
-Sem library externa. Estratégia: `data-viewport="mobile"` no `<html>` via media query no `+layout.svelte` (JS) e media queries no CSS.
+> `src/lib/types.ts` e `src/lib/graphql.ts`
 
-Telas que precisam de adaptação mobile (do protótipo):
-- M1 Dashboard Servidor → `/`
-- M2 Registrar Execução → `/meu-plano/registrar`
-- M3 Dashboard Chefia → `/`
-- M4 Lista da Equipe → `/equipe`
-- M5 Avaliar Registro → split-view vira fullscreen
+### Testes a escrever ANTES de implementar:
 
-Padrão mobile:
-- Tab bar inferior fixa com 4 itens
-- Headers compactos com ações primárias visíveis
-- Listas em cards verticais
-- CTAs sticky no rodapé do formulário
+**`src/lib/types.test.ts`**
+- `urgencyClass(-1)` → `'urg-late'`
+- `urgencyClass(0)`  → `'urg-late'`
+- `urgencyClass(7)`  → `'urg-warn'`
+- `urgencyClass(8)`  → `'urg-ok'`
+- `urgencyLabel(-3)` → string com "vencido"
+- `urgencyLabel(0)`  → string com "hoje"
+- `urgencyLabel(5)`  → string com "5 dias"
+- `initialsFrom('Ana Beatriz Costa')` → `'AC'`
+- `initialsFrom('Felipe')` → `'FE'`
+- `initialsFrom('')` → `'??'`
+- `NOTAS[1].label` → `'Excepcional'`
+- `NOTAS[2].color` → `'#168821'`
+- `NOTAS[5].label` → `'Insatisfatório'`
 
----
-
-## Fase 8 — Acessibilidade e Qualidade
-
-- **axe-core** no build: `npm install -D @axe-core/cli` + script `npm run a11y`
-- Todos os componentes com atributos ARIA corretos (roles, labels, live regions)
-- Contraste ≥ 4.5:1 (já garantido pelos tokens do design)
-- Navegação por teclado: `focus-visible` styles nos componentes interativos
-- Validação de formulários: mensagens de erro inline, não apenas cor
+**✅ Fase 1 DONE quando:** `npm test` 100% verde para `types.test.ts`.
 
 ---
 
-## Arquivos críticos
+## Fase 2 — Componentes
 
-**Referência (ler, não editar):**
-- `portal/_plan/pgd-libre/project/tokens.css` — design tokens
-- `portal/_plan/pgd-libre/project/ui.jsx` — componentes compartilhados (APIs)
-- `portal/_plan/pgd-libre/project/screens-servidor.jsx` — telas 1-6
-- `portal/_plan/pgd-libre/project/screens-chefia.jsx` — telas 7-11 + dados mock
-- `portal/_plan/pgd-libre/project/screens-wizard.jsx` — wizard 5 steps
-- `portal/_plan/pgd-libre/project/screens-gestor.jsx` — telas 18-20
-- `portal/_plan/pgd-libre/project/screens-sistema.jsx` — conformidade + notificações
-- `portal/_plan/pgd-libre/project/screens-misc.jsx` — detalhe avaliação, cadastrar, erro sync
-- `portal/_plan/pgd-libre/project/screens-extras.jsx` — plano entregas, institucional, perfil
-- `portal/_plan/pgd-libre/project/screens-mobile.jsx` — 5 telas mobile
+> `src/lib/components/*.svelte`
 
-**A criar:**
-- `portal/src/app.css` — tokens + reset + fontes
-- `portal/src/lib/components/*.svelte` — biblioteca de componentes
-- `portal/src/hooks.server.ts` — auth redirect
-- `portal/src/routes/+layout.svelte` e `+layout.server.ts`
-- `portal/schema.graphql` — exportado do backend
-- `portal/codegen.ts` — configuração graphql-codegen
+Cada componente tem seu arquivo de teste em `src/lib/components/*.test.ts`.
 
-**Backend (apenas referência para GraphQL):**
-- `pgd-libre/src/graphql/schema.py` — queries e mutations disponíveis
-- `pgd-libre/src/graphql/participante.py` — tipos GraphQL
+### 2.1 Icon
+
+- Renderiza SVG com o path correto para cada nome
+- Renderiza com `size` customizado
+- Renderiza vazio (sem erro) para ícone desconhecido
+
+### 2.2 StatusBadge
+
+- `status='EM_EXECUCAO'` → renderiza texto "Em execução" com cor verde
+- `status='APROVADO'` → renderiza texto "Aprovado" com cor azul
+- `status='CANCELADO'` → renderiza cor cinza
+- Snapshot visual do badge para cada status
+
+### 2.3 NotaBadge
+
+- `nota=1` → renderiza "Excepcional" com background `#E2F2E4`
+- `nota=2` → renderiza "Alto desempenho"
+- `nota=5` → renderiza "Insatisfatório" com background danger
+- Renderiza sem erro para nota inválida
+
+### 2.4 UrgencyPill
+
+- `daysLeft=10` → classe `urg-ok`, texto "10 dias"
+- `daysLeft=3` → classe `urg-warn`, texto "3 dias"
+- `daysLeft=-1` → classe `urg-late`, texto "vencido" / "ontem"
+- `daysLeft=0` → classe `urg-late`, texto "hoje"
+
+### 2.5 NotaSelector
+
+- Renderiza 5 blocos clicáveis
+- Clicar no bloco 3 → emite `change` com valor 3 / atualiza `value` bindado
+- Bloco selecionado tem border/shadow de destaque
+- Sem valor selecionado, nenhum bloco ativo
+- `disabled=true` → nenhum bloco é clicável
+
+### 2.6 Stepper
+
+- 3 steps, current=0 → primeiro ativo, outros pending
+- 3 steps, current=1 → segundo ativo, primeiro done, terceiro pending
+- Renderiza label de cada step
+
+### 2.7 ModalidadeBadge
+
+- `modalidade='PRESENCIAL'` → texto "Presencial"
+- `modalidade='TELETRABALHO_PARCIAL'` → texto "TT Parcial"
+- `modalidade='TELETRABALHO_INTEGRAL'` → texto "TT Integral"
+
+### 2.8 StatusTimeline
+
+- Renderiza items passados com checkmark
+- Renderiza item `current=true` com destaque
+- Renderiza items `future=true` sem preenchimento
+
+### 2.9 TopNav
+
+- Renderiza links de navegação conforme `role='servidor'`
+- Renderiza links diferentes para `role='chefe_imediato'`
+- Link ativo tem destaque visual
+- Renderiza nome do usuário
+
+**✅ Fase 2 DONE quando:** `npm test` 100% verde para todos os `*.test.ts` em `components/`.
 
 ---
 
-## Verificação end-to-end
+## Fase 3 — Auth e Layout
+
+> `src/hooks.server.ts`, `src/routes/+layout.server.ts`, `src/routes/+layout.svelte`
+
+### Testes Vitest (load functions)
+
+- `hooks.server.ts`: sem cookie → redirect 302 para `/auth/login/google`
+- `hooks.server.ts`: com cookie → passa para `resolve(event)`
+- `+layout.server.ts`: com token válido → retorna `{ user: { id, name, role } }`
+- `+layout.server.ts`: com token inválido → redirect para login
+
+### Testes Playwright E2E
+
+- Acessar `/` sem cookie → redireciona para URL do backend Google OAuth
+- Acessar `/` com cookie de `servidor` → renderiza TopNav com role servidor
+- Acessar `/` com cookie de `chefe` → renderiza TopNav com role chefe
+
+**✅ Fase 3 DONE quando:** Vitest + Playwright verdes para auth/layout.
+
+---
+
+## Fase 4 — Dashboard `/`
+
+### Vitest — `src/routes/+page.test.ts`
+
+- Com role `servidor` + plano ativo → renderiza seção "Meu Plano"
+- Com role `servidor` + sem plano → renderiza estado vazio
+- Com role `chefe_imediato` → renderiza KPIs do time
+- Com role `admin` → renderiza atalhos de admin
+
+### Playwright E2E — `e2e/dashboard.spec.ts`
+
+- Login como servidor → `/` renderiza "Meu Plano"
+- Login como chefe → `/` renderiza "Equipe"
+- Urgency pill aparece quando há prazo próximo
+
+**✅ Fase 4 DONE:** todas as variantes do dashboard verde.
+
+---
+
+## Fase 5 — Meu Plano `/meu-plano`
+
+### Vitest
+
+- Load function retorna plano ativo do participante logado
+- Renderiza KPIs (contribuições, registros, status)
+- Sem plano → estado vazio com CTA
+
+### Playwright E2E — `e2e/meu-plano.spec.ts`
+
+- Login como servidor com plano ativo → vê contribuições listadas
+- Clica "Registrar execução" → vai para `/meu-plano/registrar`
+
+**✅ Fase 5 DONE:** verde.
+
+---
+
+## Fase 6 — Registrar Execução `/meu-plano/registrar`
+
+### Vitest
+
+- Step 0: sem datas → botão "Próximo" desabilitado
+- Step 0: com datas → botão habilitado
+- Step 1: menos de 50 chars → botão desabilitado
+- Step 1: ≥50 chars → habilitado
+- Step 3 (revisão): mostra valores dos steps anteriores
+
+### Playwright E2E — `e2e/registrar-execucao.spec.ts`
+
+- Fluxo completo: preenche 4 steps → envia → redireciona para `/meu-plano?registro=enviado`
+- Cancelar no step 0 → volta para `/meu-plano`
+- Voltar no step 2 → está no step 1
+
+**✅ Fase 6 DONE:** verde.
+
+---
+
+## Fase 7 — Detalhe Avaliação `/meu-plano/avaliacao/[id]`
+
+### Vitest + Playwright
+
+- Renderiza nota com cor correta
+- Botão "Contestar" só aparece para notas 4 e 5
+- Link para `/recurso` funciona
+
+**✅ Fase 7 DONE:** verde.
+
+---
+
+## Fase 8 — Contestar Avaliação `/meu-plano/avaliacao/[id]/recurso`
+
+### Vitest
+
+- Menos de 30 chars → botão desabilitado
+- ≥30 chars → habilitado
+
+### Playwright E2E
+
+- Fluxo completo: preenche justificativa → envia → redirect `/meu-plano?recurso=aberto`
+
+**✅ Fase 8 DONE:** verde.
+
+---
+
+## Fase 9 — Lista da Equipe `/equipe`
+
+### Vitest
+
+- Filtro de busca por nome filtra a lista
+- Alterna view tabela/kanban/cards sem erro
+
+### Playwright E2E — `e2e/equipe.spec.ts`
+
+- Login como chefe → vê lista de servidores
+- Clica em servidor → vai para `/equipe/planos-trabalho/[id]`
+
+**✅ Fase 9 DONE:** verde.
+
+---
+
+## Fase 10 — Detalhe Plano de Trabalho `/equipe/planos-trabalho/[id]`
+
+### Vitest
+
+- Renderiza KPIs (status, contribuições, registros)
+- Registros pendentes mostram banner de aviso
+- Load function retorna 404 para ID inexistente
+
+### Playwright E2E — `e2e/avaliar-registro.spec.ts`
+
+- Clicar "Avaliar" abre modal
+- Selecionar nota → justificativa obrigatória para notas 1, 4, 5
+- Enviar avaliação → modal fecha, lista atualiza
+
+**✅ Fase 10 DONE:** verde.
+
+---
+
+## Fase 11 — Wizard Criar Plano `/equipe/planos-trabalho/novo`
+
+### Vitest
+
+- Step 0: sem participante → não avança
+- Step 3: contribuições < 100% → botão "Próximo" desabilitado
+- Step 3: contribuições = 100% → habilitado
+- addContribuicao: acumula corretamente
+
+### Playwright E2E — `e2e/criar-plano.spec.ts`
+
+- Fluxo completo 5 steps → envia → redirect `/equipe?plano=criado`
+
+**✅ Fase 11 DONE:** verde.
+
+---
+
+## Fase 12 — Perfil do Participante `/equipe/participantes/[id]`
+
+### Vitest + Playwright
+
+- Renderiza header com nome, SIAPE, badges
+- Tabs alternáveis (Visão geral, Planos, etc.)
+
+**✅ Fase 12 DONE:** verde.
+
+---
+
+## Fase 13 — Plano de Entregas `/equipe/planos-entregas/[id]`
+
+### Vitest + Playwright
+
+- Lista entregas com progresso
+- Filtros de status e responsável
+
+**✅ Fase 13 DONE:** verde.
+
+---
+
+## Fase 14 — Conformidade + Erro Sync
+
+### Playwright E2E — `e2e/conformidade.spec.ts`
+
+- Admin acessa `/conformidade` → vê tabela de erros
+- Clicar "Inspecionar" → vai para `/conformidade/erro/[id]`
+- Renderiza histórico de tentativas
+
+**✅ Fase 14 DONE:** verde.
+
+---
+
+## Fase 15 — Demais telas P1/P2
+
+Cada uma com ciclo RED→GREEN antes de implementar:
+
+- `/relatorios` — 6 cards + relatório inline
+- `/admin/participantes` e `/admin/participantes/novo`
+- `/admin/institucional` — tabs
+- `/notificacoes` — inbox
+
+**✅ Fase 15 DONE:** verde.
+
+---
+
+## Verificação Final
 
 ```bash
-# 1. Projeto compila sem erros TypeScript
-cd portal && npm run check
-
-# 2. Codegen roda sem erros
-npm run codegen   # precisa do schema.graphql exportado
-
-# 3. Dev server sobe
-npm run dev       # http://localhost:5173
-
-# 4. Fluxo de auth:
-# - Acessar http://localhost:5173 sem cookie → redireciona para backend Google OAuth
-# - Login Google → callback → cookie set → volta para dashboard
-
-# 5. Dashboard renderiza com dados reais
-# - Verificar que TopNav mostra papel correto
-# - Verificar urgency pills aparecem nos prazos
-
-# 6. Fluxo A (golden path): registrar execução
-# Dashboard → /meu-plano → /meu-plano/registrar → wizard 4 steps → confirmação
-
-# 7. Fluxo B (golden path): avaliar registro
-# Dashboard → /equipe → plano de um servidor → NotaSelector → confirmar
-
-# 8. Acessibilidade
-npm run a11y      # axe-core sem erros críticos
+npm test            # Vitest — 0 erros
+npm run test:e2e    # Playwright — 0 erros
+npm run build       # SvelteKit build sem erros TypeScript
+npm run check       # svelte-check 0 erros 0 warnings
 ```
 
 ---
 
-## Sequenciamento sugerido (PRs)
+## Estrutura de arquivos de teste
 
-| PR | Conteúdo | Tempo estimado |
-|---|---|---|
-| PR1 | Scaffolding + tokens + codegen config | ~2h |
-| PR2 | Componentes base (Icon, TopNav, badges, UrgencyPill, NotaSelector, StatusTimeline, Stepper) | ~4h |
-| PR3 | Auth hooks + layout + Dashboard P0 | ~3h |
-| PR4 | /meu-plano + /meu-plano/registrar (P0) | ~3h |
-| PR5 | /equipe + avaliar registro (P0) | ~4h |
-| PR6 | P1 screens (wizard criar plano, cadastrar participante, conformidade, relatórios) | ~5h |
-| PR7 | P2 screens + mobile adaptations | ~4h |
+```
+portal/
+  vitest.config.ts
+  playwright.config.ts
+  src/
+    test-setup.ts
+    lib/
+      types.test.ts
+      graphql.test.ts
+      components/
+        Icon.test.ts
+        StatusBadge.test.ts
+        NotaBadge.test.ts
+        UrgencyPill.test.ts
+        NotaSelector.test.ts
+        Stepper.test.ts
+        StatusTimeline.test.ts
+        ModalidadeBadge.test.ts
+        TopNav.test.ts
+    routes/
+      +page.test.ts
+      meu-plano/
+        +page.test.ts
+        registrar/+page.test.ts
+        avaliacao/[id]/+page.test.ts
+        avaliacao/[id]/recurso/+page.test.ts
+      equipe/
+        +page.test.ts
+        planos-trabalho/[id]/+page.test.ts
+        planos-trabalho/novo/+page.test.ts
+        participantes/[id]/+page.test.ts
+        planos-entregas/[id]/+page.test.ts
+      conformidade/
+        +page.test.ts
+        erro/[id]/+page.test.ts
+  e2e/
+    global-setup.ts
+    fixtures.ts
+    dashboard.spec.ts
+    meu-plano.spec.ts
+    registrar-execucao.spec.ts
+    avaliacao.spec.ts
+    equipe.spec.ts
+    avaliar-registro.spec.ts
+    criar-plano.spec.ts
+    conformidade.spec.ts
+```
+
+---
+
+## Notas sobre o backend local
+
+```bash
+# Iniciar DB + app em background
+cd /Users/nitai/dev/destaquesgovbr/pgd-libre/pgd-libre
+docker-compose up -d
+
+# Verificar se está rodando
+curl http://localhost:8000/health
+
+# O endpoint dev-login só existe quando ENVIRONMENT != "production"
+# Está configurado em .env com ENVIRONMENT=development por padrão
+```

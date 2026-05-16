@@ -2,7 +2,9 @@
 	export interface TimelineItem {
 		label: string;
 		date?: string;
-		state: 'done' | 'current' | 'pending';
+		note?: string;
+		current?: boolean;
+		future?: boolean;
 	}
 
 	interface Props {
@@ -13,9 +15,15 @@
 
 <ol class="timeline" aria-label="Linha do tempo do plano">
 	{#each items as item, i}
-		<li class="tl-item" data-state={item.state}>
+		<li
+			class="tl-item"
+			class:tl-current={item.current}
+			class:tl-future={item.future}
+			data-current={item.current ? 'true' : undefined}
+			data-future={item.future ? 'true' : undefined}
+		>
 			<div class="tl-marker" aria-hidden="true">
-				{#if item.state === 'done'}
+				{#if !item.current && !item.future}
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
 						<path d="M20 6L9 17l-5-5" />
 					</svg>
@@ -28,6 +36,9 @@
 				<span class="tl-label">{item.label}</span>
 				{#if item.date}
 					<span class="tl-date">{item.date}</span>
+				{/if}
+				{#if item.note}
+					<span class="tl-note">{item.note}</span>
 				{/if}
 			</div>
 		</li>
@@ -62,22 +73,19 @@
 		flex: none;
 		z-index: 1;
 		transition: all .2s;
-	}
-
-	[data-state="done"] .tl-marker {
 		background: var(--c-success);
 		color: white;
 		border: 2px solid var(--c-success);
 	}
 
-	[data-state="current"] .tl-marker {
+	.tl-current .tl-marker {
 		background: var(--c-surface);
 		color: var(--c-primary);
 		border: 2px solid var(--c-primary);
 		box-shadow: 0 0 0 4px var(--c-primary-soft);
 	}
 
-	[data-state="pending"] .tl-marker {
+	.tl-future .tl-marker {
 		background: var(--c-surface);
 		border: 2px solid var(--c-border-strong);
 		color: var(--c-muted-2);
@@ -91,10 +99,6 @@
 		height: 2px;
 		background: var(--c-border);
 		z-index: 0;
-	}
-
-	[data-state="done"] .tl-line {
-		background: var(--c-success);
 	}
 
 	.tl-content {
@@ -111,12 +115,18 @@
 		color: var(--c-ink-2);
 	}
 
-	[data-state="pending"] .tl-label {
+	.tl-future .tl-label {
 		color: var(--c-muted);
 	}
 
 	.tl-date {
 		font-size: 11px;
 		color: var(--c-muted);
+	}
+
+	.tl-note {
+		font-size: 11px;
+		color: var(--c-muted-2);
+		font-style: italic;
 	}
 </style>

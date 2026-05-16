@@ -47,11 +47,12 @@ const QUERY = `
 export const load: PageServerLoad = async ({ params, cookies }) => {
 	const token = cookies.get('access_token');
 
+	let data: { planoTrabalho: unknown };
 	try {
-		const data = await gqlFetch<{ planoTrabalho: unknown }>(QUERY, { id: params.id }, token);
-		if (!data.planoTrabalho) error(404, 'Plano não encontrado');
-		return { plano: data.planoTrabalho };
+		data = await gqlFetch<{ planoTrabalho: unknown }>(QUERY, { id: params.id }, token);
 	} catch {
 		error(500, 'Erro ao carregar plano');
 	}
+	if (!data.planoTrabalho) error(404, 'Plano não encontrado');
+	return { plano: data.planoTrabalho };
 };

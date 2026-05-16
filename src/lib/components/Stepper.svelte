@@ -9,7 +9,13 @@
 <nav class="stepper" aria-label="Etapas do formulário">
 	{#each steps as step, i}
 		{@const state = i < current ? 'done' : i === current ? 'current' : 'pending'}
-		<div class="step" data-state={state}>
+		<div
+			class="step"
+			class:step-done={state === 'done'}
+			data-state={state}
+			data-done={state === 'done' ? 'true' : undefined}
+			aria-current={state === 'current' ? 'step' : undefined}
+		>
 			<div class="step-dot" aria-hidden="true">
 				{#if state === 'done'}
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>

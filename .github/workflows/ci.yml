@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'infra/**'
+      - '_plan/**'
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - 'infra/**'
+      - '_plan/**'
+      - '**.md'
+
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Type check (svelte-check)
+        run: npm run check
+
+      - name: Unit tests (Vitest)
+        run: npm test

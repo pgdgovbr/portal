@@ -2,12 +2,15 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
 	schema: './schema.graphql',
-	documents: ['src/**/*.svelte', 'src/**/*.ts'],
 	generates: {
-		'src/lib/gql/': {
-			preset: 'client',
-			presetConfig: {
-				gqlTagName: 'gql'
+		'src/lib/gql/graphql.ts': {
+			plugins: ['typescript'],
+			config: {
+				scalars: {
+					Date: 'string',
+					DateTime: 'string',
+					UUID: 'string'
+				}
 			}
 		}
 	}
