@@ -39,6 +39,9 @@ asChefe('/equipe/planos-trabalho/novo → step 0 do wizard visível', async ({ p
 		page.getByRole('heading', { name: /criar plano de trabalho/i })
 	).toBeVisible();
 
+	// Fase 7.4: Step de exceção aparece antes do wizard. Confirmar para prosseguir.
+	await page.getByTestId('btn-confirmar-excecao').click();
+
 	// The step 0 content heading
 	await expect(
 		page.getByRole('heading', { name: /para quem é este plano\?/i })
@@ -56,6 +59,7 @@ asChefe('/equipe/planos-trabalho/novo → step 0 do wizard visível', async ({ p
 
 asChefe('wizard exibe todos os rótulos de etapas no Stepper', async ({ page }) => {
 	await page.goto('/equipe/planos-trabalho/novo');
+	await page.getByTestId('btn-confirmar-excecao').click();
 
 	// The Stepper renders all step labels as visible text somewhere on the page.
 	// We check each label is present in the DOM (may not all be "visible" in
@@ -76,6 +80,7 @@ asChefe('wizard exibe todos os rótulos de etapas no Stepper', async ({ page }) 
 
 asChefe('preencher step 0 (participante + datas) → Próximo → step 1 "Carga horária"', async ({ page }) => {
 	await page.goto('/equipe/planos-trabalho/novo');
+	await page.getByTestId('btn-confirmar-excecao').click();
 
 	// Select a participant from the dropdown (seed has Lucas Ramos = servidor4, no plan)
 	const select = page.locator('select#serv-sel');
@@ -116,6 +121,7 @@ asChefe('preencher step 0 (participante + datas) → Próximo → step 1 "Carga 
 
 asChefe('completa wizard inteiro e envia plano → redireciona para /equipe?plano=criado', async ({ page }) => {
 	await page.goto('/equipe/planos-trabalho/novo');
+	await page.getByTestId('btn-confirmar-excecao').click();
 
 	// ─── Step 0: Participante & período ────────────────────────────────────
 	const select = page.locator('select#serv-sel');
@@ -202,6 +208,7 @@ asChefe('erro no GraphQL ao criar plano → exibe alerta de erro', async ({ page
 	});
 
 	await page.goto('/equipe/planos-trabalho/novo');
+	await page.getByTestId('btn-confirmar-excecao').click();
 
 	// Select a participant
 	const select = page.locator('select#serv-sel');
