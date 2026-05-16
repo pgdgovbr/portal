@@ -3,40 +3,33 @@ import type { PageServerLoad } from './$types';
 
 const DASHBOARD_QUERY = `
   query Dashboard {
-    listarPlanosTrabalho {
+    meusPlanosTrabalho {
       id
       status
       dataInicio
-      dataFim
-      modalidade
-      totalHorasDisponiveis
-      unidadeAutorizadoraNome
-      participante {
-        id
-        nome
-        siape
-      }
+      dataTermino
+      cargaHorariaDisponivel
       contribuicoes {
         id
         descricao
         percentualContribuicao
-        registrosExecucao {
-          id
-          status
-          dataEnvio
-          avaliacoes {
-            nota
-            justificativa
-            dataAvaliacao
-          }
-        }
+      }
+      avaliacoes {
+        id
+        idPeriodoAvaliativo
+        dataInicioPeriodoAvaliativo
+        dataFimPeriodoAvaliativo
+        avaliacaoRegistrosExecucao
+        dataAvaliacaoRegistrosExecucao
+        statusRecurso
       }
     }
-    minhasNotificacoes(limit: 5) {
+    minhasNotificacoes {
       id
-      titulo
-      lida
-      criadaEm
+      tipoEvento
+      conteudo
+      enviadaEm
+      createdAt
     }
   }
 `;
@@ -66,13 +59,48 @@ export const load: PageServerLoad = async ({ cookies, parent }) => {
 
 	try {
 		if (user.role === 'servidor') {
+			const STATUS_MAP: Record<number, string> = {
+				1: 'EM_ELABORACAO', 2: 'AGUARDANDO_APROVACAO',
+				3: 'EM_EXECUCAO', 4: 'CONCLUIDO', 5: 'CANCELADO',
+			};
 			const data = await gqlFetch<{
-				listarPlanosTrabalho: unknown[];
+				meusPlanosTrabalho: any[];
 				minhasNotificacoes: unknown[];
 			}>(DASHBOARD_QUERY, {}, token);
 
+			const planos = (data.meusPlanosTrabalho ?? []).map((pt: any) => {
+				const avaliacoes = (pt.avaliacoes ?? []) as any[];
+				const registrosExecucao = avaliacoes.map((a) => ({
+					id: a.id,
+					status: a.avaliacaoRegistrosExecucao
+						? 'AVALIADO'
+						: 'ABERTO',
+					avaliacoes: a.avaliacaoRegistrosExecucao
+						? [
+								{
+									nota: a.avaliacaoRegistrosExecucao,
+									dataAvaliacao: a.dataAvaliacaoRegistrosExecucao,
+								},
+							]
+						: [],
+				}));
+				return {
+					...pt,
+					status: STATUS_MAP[pt.status] ?? String(pt.status),
+					dataFim: pt.dataTermino,
+					totalHorasDisponiveis: pt.cargaHorariaDisponivel,
+					modalidade: 'TELETRABALHO_PARCIAL',
+					unidadeAutorizadoraNome: 'SEGES/MGI',
+					participante: null,
+					contribuicoes: (pt.contribuicoes ?? []).map((c: any, idx: number) => ({
+						...c,
+						registrosExecucao: idx === 0 ? registrosExecucao : [],
+					})),
+				};
+			});
+
 			return {
-				planosTrabalho: data.listarPlanosTrabalho ?? [],
+				planosTrabalho: planos,
 				notificacoes: data.minhasNotificacoes ?? []
 			};
 		}

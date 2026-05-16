@@ -71,19 +71,28 @@ async function captureServidor(browser: ReturnType<typeof chromium.launch> exten
   await go(page, '/meu-plano/registrar');
   await shot(page, 'servidor/registrar-execucao.png');
 
-  // Avaliação: navegar via botão "Ver avaliação"
-  await go(page, '/meu-plano');
-  await page.waitForTimeout(800);
-  const linkAval = page.locator('a[href*="/meu-plano/avaliacao/"]').first();
-  const hasAval = await linkAval.count().then(c => c > 0).catch(() => false);
-  if (hasAval) {
-    await linkAval.click();
-    await page.waitForLoadState('networkidle');
+  // Avaliação detalhe — ir direto ao ARE com nota 4 e recurso ABERTO (mais ilustrativo)
+  const areResp = await ctx.request.post(`${BACKEND}/graphql`, {
+    data: {
+      query: '{ meusPlanosTrabalho { avaliacoes { id avaliacaoRegistrosExecucao statusRecurso } } }',
+    },
+  });
+  const areJson = await areResp.json();
+  const allAvals = (areJson?.data?.meusPlanosTrabalho ?? []).flatMap((p: any) => p.avaliacoes ?? []);
+  const avalComRecurso = allAvals.find((a: any) => a.statusRecurso === 'ABERTO');
+  const avalAvaliada = allAvals.find((a: any) => a.avaliacaoRegistrosExecucao);
+  const targetAval = avalComRecurso ?? avalAvaliada;
+  if (targetAval) {
+    await go(page, `/meu-plano/avaliacao/${targetAval.id}`);
     await page.waitForTimeout(400);
     await shot(page, 'servidor/avaliacao-detalhe.png');
   } else {
-    console.log('  ! avaliação não encontrada para Ana Silva (dados não expostos pelo schema atual)');
+    console.log('  ! nenhuma avaliação completa encontrada para Ana Silva');
   }
+
+  // Notificações
+  await go(page, '/notificacoes');
+  await shot(page, 'servidor/notificacoes.png');
 
   await ctx.close();
 
@@ -102,8 +111,18 @@ async function captureServidor(browser: ReturnType<typeof chromium.launch> exten
     await page3.waitForLoadState('networkidle');
     await page3.waitForTimeout(400);
     await shot(page3, 'servidor/contestar-avaliacao.png');
+
+    // Tentar abrir página de recurso (botão "Contestar avaliação")
+    const btnRecurso = page3.getByRole('link', { name: /contestar/i }).first();
+    const hasBtnRec = await btnRecurso.isVisible({ timeout: 2000 }).catch(() => false);
+    if (hasBtnRec) {
+      await btnRecurso.click();
+      await page3.waitForLoadState('networkidle');
+      await page3.waitForTimeout(400);
+      await shot(page3, 'servidor/recurso-formulario.png');
+    }
   } else {
-    console.log('  ! avaliação não disponível via schema atual — pulando contestação');
+    console.log('  ! avaliação não disponível — pulando contestação');
   }
   await ctx3.close();
 }
@@ -147,8 +166,35 @@ async function captureChefe(browser: ReturnType<typeof chromium.launch> extends 
     }
   }
 
+  // Perfil de um participante (Ana Silva — primeiro link da equipe)
+  await go(page, '/equipe');
+  await page.waitForTimeout(400);
+  const partLink = page.locator('a[href*="/equipe/participantes/"]').first();
+  const hasPartLink = await partLink.count().then(c => c > 0).catch(() => false);
+  if (hasPartLink) {
+    await partLink.click();
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(400);
+    await shot(page, 'chefia/participante-detalhe.png');
+  }
+
   // Wizard: Criar Plano de Trabalho
   await captureWizard(page);
+
+  await ctx.close();
+}
+
+async function captureAdmin(browser: ReturnType<typeof chromium.launch> extends Promise<infer B> ? B : never) {
+  console.log('\n[ADMIN — Roberto Admin]');
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctx, PERSONAS.admin);
+  const page = await ctx.newPage();
+
+  await go(page, '/admin/participantes');
+  await shot(page, 'admin/participantes.png');
+
+  await go(page, '/admin/institucional');
+  await shot(page, 'admin/institucional.png');
 
   await ctx.close();
 }
@@ -239,9 +285,18 @@ async function captureGestor(browser: ReturnType<typeof chromium.launch> extends
   await go(page, '/');
   await shot(page, 'gestor/dashboard.png');
 
-  // PE com status 2 (Aguardando aprovação) — id descoberto via API
-  // seed_demo.py cria 2 PEs; o de status=2 é o da CGTI aguardando aprovação do gestor
-  await go(page, '/equipe/planos-entregas/2bc92240-c391-4710-a39a-113b067a0cb4');
+  // PE com status 2 (Aguardando aprovação) — descobrir id via API (muda a cada reseed)
+  const peResp = await ctx.request.post(`${BACKEND}/graphql`, {
+    data: { query: '{ listarPlanosEntregas { id status } }' },
+  });
+  const peJson = await peResp.json();
+  const pendingPe = (peJson?.data?.listarPlanosEntregas ?? []).find((p: any) => p.status === 2);
+  if (!pendingPe) {
+    console.log('  ! nenhum PE com status=2 encontrado');
+    await ctx.close();
+    return;
+  }
+  await go(page, `/equipe/planos-entregas/${pendingPe.id}`);
   await page.waitForTimeout(600);
   const peTitle = await page.locator('.pg-title, h1').first().textContent().catch(() => '');
   if (peTitle && !peTitle.includes('500') && !peTitle.includes('404')) {
@@ -252,6 +307,9 @@ async function captureGestor(browser: ReturnType<typeof chromium.launch> extends
 
   await go(page, '/conformidade');
   await shot(page, 'gestor/conformidade.png');
+
+  await go(page, '/relatorios');
+  await shot(page, 'gestor/relatorios.png');
 
   await ctx.close();
 }
@@ -351,6 +409,7 @@ async function main() {
     await captureServidor(browser);
     await captureChefe(browser);
     await captureGestor(browser);
+    await captureAdmin(browser);
     await captureDemo(browser);
     await captureExtra(browser);
   } catch (err) {

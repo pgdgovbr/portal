@@ -18,6 +18,24 @@ const QUERY = `
         percentualContribuicao
         tipoContribuicao
       }
+      avaliacoes {
+        id
+        idPeriodoAvaliativo
+        dataInicioPeriodoAvaliativo
+        dataFimPeriodoAvaliativo
+        descricaoExecucao
+        ocorrencias
+        dataRegistroParticipante
+        avaliacaoRegistrosExecucao
+        dataAvaliacaoRegistrosExecucao
+        avaliacaoJustificativa
+        statusRecurso
+        recursoTexto
+        recursoData
+        recursoDecisao
+        recursoDecisaoJustificativa
+        recursoDecisaoData
+      }
     }
     listarParticipantes {
       id
@@ -52,6 +70,46 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 	const participantes = (data.listarParticipantes ?? []) as any[];
 	const participante = participantes.find((p: any) => p.id === pt.participanteId) ?? null;
 
+	// Adapt avaliacoes (flat list from backend) to the shape Svelte expects:
+	// contribuicao.registrosExecucao[].avaliacoes[0]
+	const avaliacoes = (pt.avaliacoes ?? []) as any[];
+	const registrosExecucao = avaliacoes.map((a) => ({
+		id: a.id,
+		idPeriodoAvaliativo: a.idPeriodoAvaliativo,
+		periodoInicio: a.dataInicioPeriodoAvaliativo,
+		periodoFim: a.dataFimPeriodoAvaliativo,
+		descricaoAtividades: a.descricaoExecucao,
+		ocorrencias: a.ocorrencias,
+		dataEnvio: a.dataRegistroParticipante,
+		status: a.avaliacaoRegistrosExecucao
+			? 'AVALIADO'
+			: a.dataRegistroParticipante
+				? 'AGUARDANDO_AVALIACAO'
+				: 'ABERTO',
+		avaliacoes: a.avaliacaoRegistrosExecucao
+			? [
+					{
+						id: a.id,
+						nota: a.avaliacaoRegistrosExecucao,
+						justificativa: a.avaliacaoJustificativa,
+						dataAvaliacao: a.dataAvaliacaoRegistrosExecucao,
+						recurso:
+							a.statusRecurso || a.recursoTexto
+								? {
+										id: a.id,
+										status: a.statusRecurso,
+										texto: a.recursoTexto,
+										dataAbertura: a.recursoData,
+										decisao: a.recursoDecisao,
+										decisaoJustificativa: a.recursoDecisaoJustificativa,
+										dataDecisao: a.recursoDecisaoData,
+									}
+								: null,
+					},
+				]
+			: [],
+	}));
+
 	// Build enriched plano compatible with svelte component expectations
 	const plano = {
 		...pt,
@@ -63,9 +121,11 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 		participante: participante
 			? { ...participante, siape: participante.matriculaSiape }
 			: null,
-		contribuicoes: (pt.contribuicoes ?? []).map((c: any) => ({
+		// Put all registros under the first contribuicao so the flatMap in the
+		// Svelte component picks them up (and avoid duplicating per contribuição).
+		contribuicoes: (pt.contribuicoes ?? []).map((c: any, idx: number) => ({
 			...c,
-			registrosExecucao: [], // not exposed in current schema
+			registrosExecucao: idx === 0 ? registrosExecucao : [],
 		})),
 	};
 

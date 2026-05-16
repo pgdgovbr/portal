@@ -4,6 +4,7 @@ import AvaliacaoPage from './+page.svelte';
 
 const makeRegistro = (notaOverride?: number) => ({
 	id: '1',
+	idPeriodoAvaliativo: 'ARE-001',
 	status: 'AVALIADO',
 	periodoInicio: '2026-01-01',
 	periodoFim: '2026-01-31',
