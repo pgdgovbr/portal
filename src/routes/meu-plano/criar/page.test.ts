@@ -8,11 +8,23 @@ const baseData = {
 		{
 			id: 'pe-1',
 			idPlanoEntregas: 'PE-CGTI-2026',
+			codUnidadeAutorizadora: 10,
+			codUnidadeExecutora: 100,
 			dataInicio: '2026-01-01',
 			dataTermino: '2026-12-31',
 			status: 3,
 		},
 	],
+	participante: {
+		id: 'part-uuid-1',
+		email: 'ana@gov.br',
+		nome: 'Ana Silva',
+		matriculaSiape: '1234567',
+		origemUnidade: 'SIAPE' as const,
+		codUnidadeAutorizadora: 10,
+		codUnidadeLotacao: 100,
+		codUnidadeInstituidora: 1,
+	},
 };
 
 describe('Meu Plano · Criar (wizard servidor)', () => {
@@ -24,11 +36,11 @@ describe('Meu Plano · Criar (wizard servidor)', () => {
 	});
 
 	it('renderiza sem erros', () => {
-		expect(() => render(CriarMeuPlanoPage, { props: { data: baseData } })).not.toThrow();
+		expect(() => render(CriarMeuPlanoPage, { props: { data: baseData, form: null } })).not.toThrow();
 	});
 
 	it('renderiza Stepper com 5 etapas', () => {
-		render(CriarMeuPlanoPage, { props: { data: baseData } });
+		render(CriarMeuPlanoPage, { props: { data: baseData, form: null } });
 		const stepper = screen.getByRole('navigation', { name: /Etapas do formulário/i });
 		expect(stepper).toBeInTheDocument();
 		// Confere que os 5 nomes aparecem
@@ -38,20 +50,20 @@ describe('Meu Plano · Criar (wizard servidor)', () => {
 	});
 
 	it('NÃO renderiza seletor de participante (servidor cria para si)', () => {
-		render(CriarMeuPlanoPage, { props: { data: baseData } });
+		render(CriarMeuPlanoPage, { props: { data: baseData, form: null } });
 		expect(screen.queryByLabelText(/Servidor/i)).not.toBeInTheDocument();
 		expect(screen.queryByText(/Selecione um servidor/i)).not.toBeInTheDocument();
 	});
 
 	it('botão "Próximo" começa desabilitado no step 0 (sem datas)', () => {
-		render(CriarMeuPlanoPage, { props: { data: baseData } });
+		render(CriarMeuPlanoPage, { props: { data: baseData, form: null } });
 		const proxBtn = screen.getByRole('button', { name: /Próximo/i }) as HTMLButtonElement;
 		expect(proxBtn).toBeInTheDocument();
 		expect(proxBtn.disabled).toBe(true);
 	});
 
 	it('exibe banner "Dica" sobre tipos de contribuição na primeira visita (sem cookie)', () => {
-		render(CriarMeuPlanoPage, { props: { data: baseData } });
+		render(CriarMeuPlanoPage, { props: { data: baseData, form: null } });
 		// "Dica" aparece no banner-tooltip (não no card lateral)
 		const dicaBanner = screen.getByTestId('wizard-dica-banner');
 		expect(dicaBanner).toBeInTheDocument();
@@ -59,7 +71,7 @@ describe('Meu Plano · Criar (wizard servidor)', () => {
 	});
 
 	it('último step exibe CTAs "Salvar rascunho" e "Assinar e enviar"', async () => {
-		render(CriarMeuPlanoPage, { props: { data: baseData } });
+		render(CriarMeuPlanoPage, { props: { data: baseData, form: null } });
 		// Pula direto via botões de "Editar" do step 4 não existem antes... usamos teste do flag interno
 		// Para simplificar, validamos a existência dos botões em qualquer momento: o componente
 		// renderiza-os condicionalmente apenas no último step, então invocamos via API exposta
@@ -95,7 +107,7 @@ describe('Meu Plano · Criar (wizard servidor)', () => {
 	});
 
 	it('step 4 (Contribuições) desabilita "Próximo" enquanto soma != 100%', async () => {
-		render(CriarMeuPlanoPage, { props: { data: baseData } });
+		render(CriarMeuPlanoPage, { props: { data: baseData, form: null } });
 		const inicio = screen.getByLabelText(/Início/i) as HTMLInputElement;
 		const fim = screen.getByLabelText(/Fim/i) as HTMLInputElement;
 		await fireEvent.input(inicio, { target: { value: '2026-08-01' } });
