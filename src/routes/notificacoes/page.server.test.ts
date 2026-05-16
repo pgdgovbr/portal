@@ -34,7 +34,9 @@ describe('+page.server — load (notificacoes)', () => {
 	it('with notifications → mapeia para shape { id, titulo, corpo, lida, criadaEm }', async () => {
 		makeFetchWith({ minhasNotificacoes: [mockBackendNotif] });
 
-		const result = await load(makeEvent());
+		const result = (await load(makeEvent())) as {
+			notificacoes: { id: string; titulo: string; corpo: string; lida: boolean }[];
+		};
 
 		expect(result.notificacoes).toHaveLength(1);
 		expect(result.notificacoes[0].id).toBe('1');

@@ -52,6 +52,15 @@
 		'drag-handle': 'M8 6h.01M12 6h.01M8 10h.01M12 10h.01M8 14h.01M12 14h.01',
 		grid: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
 		'arrow-up': 'M12 19V5M5 12l7-7 7 7',
+		// Aliases curtos usados pelo workflow de pactuação
+		paperPlane: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
+		arrowR: 'M5 12h14M12 5l7 7-7 7',
+		arrowL: 'M19 12H5M12 19l-7-7 7-7',
+		chevR: 'M9 18l6-6-6-6',
+		chevD: 'M6 9l6 6 6-6',
+		// Aperto de mão (handshake): silhueta simples de duas mãos cumprimentando
+		handshake:
+			'M11 17l-4-4 6-6 4 4M3 13l4 4M21 11l-4 4M14 7l3-3 4 4-3 3'
 	};
 </script>
 

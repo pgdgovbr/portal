@@ -39,7 +39,9 @@ describe('meu-plano +page.server — load', () => {
 
 	it('com usuário e planos → retorna lista com plano enriquecido (status string, contribs)', async () => {
 		stubFetch([mockBackendPt]);
-		const result = await load(makeEvent({ role: 'servidor' }));
+		const result = (await load(makeEvent({ role: 'servidor' }))) as {
+			planosTrabalho: { id: string; status: string }[];
+		};
 		expect(result.planosTrabalho).toHaveLength(1);
 		expect(result.planosTrabalho[0].id).toBe('1');
 		expect(result.planosTrabalho[0].status).toBe('EM_EXECUCAO');
@@ -47,13 +49,17 @@ describe('meu-plano +page.server — load', () => {
 
 	it('com usuário e lista vazia → retorna { planosTrabalho: [] }', async () => {
 		stubFetch([]);
-		const result = await load(makeEvent({ role: 'servidor' }));
+		const result = (await load(makeEvent({ role: 'servidor' }))) as {
+			planosTrabalho: unknown[];
+		};
 		expect(result.planosTrabalho).toEqual([]);
 	});
 
 	it('gqlFetch lança erro → retorna { planosTrabalho: [] } (catch fallback)', async () => {
 		vi.stubGlobal('fetch', vi.fn(async () => new Response('Server Error', { status: 500 })));
-		const result = await load(makeEvent({ role: 'servidor' }));
+		const result = (await load(makeEvent({ role: 'servidor' }))) as {
+			planosTrabalho: unknown[];
+		};
 		expect(result.planosTrabalho).toEqual([]);
 	});
 
