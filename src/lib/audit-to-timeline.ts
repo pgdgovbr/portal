@@ -29,13 +29,16 @@ export interface TimelineContexto {
 /**
  * Campos do PlanoTrabalho exibidos no diff "humano".
  * Tudo o que não estiver aqui é ignorado para evitar barulho na UI.
+ *
+ * Nota: `trabalho_noturno` existe no audit log do backend mas não está
+ * exposto via GraphQL (não está em `PlanoTrabalhoType`). Não incluímos
+ * aqui para não gerar diff falso ao comparar com o estado atual do plano.
  */
 const CAMPOS_PLANO: Record<string, { mono?: boolean; label?: string }> = {
 	data_inicio: {},
 	data_termino: {},
 	carga_horaria_disponivel: { mono: true },
-	criterios_avaliacao: {},
-	trabalho_noturno: {}
+	criterios_avaliacao: {}
 };
 
 /**
@@ -163,13 +166,15 @@ export function obterUltimaSubmissao(
 /**
  * Mapeamento camelCase (frontend / GraphQL) → snake_case (audit values).
  * Usado para comparar o snapshot da última submissão com o estado atual do plano.
+ *
+ * Mantemos só campos efetivamente expostos pelo `PlanoTrabalhoType` no GraphQL —
+ * `trabalho_noturno` existe no audit log mas não é selecionável, então ignoramos.
  */
 const CAMPO_FRONT_TO_AUDIT: Record<string, string> = {
 	dataInicio: 'data_inicio',
 	dataTermino: 'data_termino',
 	cargaHorariaDisponivel: 'carga_horaria_disponivel',
-	criteriosAvaliacao: 'criterios_avaliacao',
-	trabalhoNoturno: 'trabalho_noturno'
+	criteriosAvaliacao: 'criterios_avaliacao'
 };
 
 /**
@@ -204,6 +209,32 @@ export function calcularDiffDesdeUltimaSubmissao(
 		});
 	}
 	return out;
+}
+
+/**
+ * Procura no audit log o último evento `enviar_para_outro_lado` cujo autor
+ * NÃO é o próprio participante — ou seja, o envio da chefia de volta para
+ * o servidor (na revisão).
+ *
+ * Retorna `{ email }` da chefia que enviou, ou `null` se não houver tal evento.
+ *
+ * Importante: usamos o audit log porque `listarParticipantes` não diz quem é
+ * "a chefia" — qualquer heurística baseada em "primeiro participante diferente"
+ * é frágil em ambientes reais com várias pessoas.
+ */
+export function obterChefiaQueEnviou(
+	events: AuditLogEntry[],
+	participanteEmail: string
+): { email: string } | null {
+	for (let i = events.length - 1; i >= 0; i--) {
+		const ev = events[i];
+		if (ev.action !== 'UPDATE') continue;
+		if (ev.newValues?.['acao'] !== 'enviar_para_outro_lado') continue;
+		if (!ev.userEmail) continue;
+		if (ev.userEmail === participanteEmail) continue;
+		return { email: ev.userEmail };
+	}
+	return null;
 }
 
 /**
