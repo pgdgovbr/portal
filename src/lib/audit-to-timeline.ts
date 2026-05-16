@@ -140,6 +140,73 @@ function nomeAutor(ev: AuditLogEntry): string {
 }
 
 /**
+ * Retorna o snapshot (newValues) do último evento de auditoria com
+ * `acao === 'enviar_para_outro_lado'`. Quando `filter.userEmail` é passado,
+ * restringe-se a eventos daquele autor (útil para isolar "última submissão do servidor").
+ *
+ * Retorna `null` se não houver tal evento.
+ */
+export function obterUltimaSubmissao(
+	events: AuditLogEntry[],
+	filter?: { userEmail?: string }
+): Record<string, unknown> | null {
+	for (let i = events.length - 1; i >= 0; i--) {
+		const ev = events[i];
+		if (ev.action !== 'UPDATE') continue;
+		if (ev.newValues?.['acao'] !== 'enviar_para_outro_lado') continue;
+		if (filter?.userEmail && ev.userEmail !== filter.userEmail) continue;
+		return (ev.newValues ?? {}) as Record<string, unknown>;
+	}
+	return null;
+}
+
+/**
+ * Mapeamento camelCase (frontend / GraphQL) → snake_case (audit values).
+ * Usado para comparar o snapshot da última submissão com o estado atual do plano.
+ */
+const CAMPO_FRONT_TO_AUDIT: Record<string, string> = {
+	dataInicio: 'data_inicio',
+	dataTermino: 'data_termino',
+	cargaHorariaDisponivel: 'carga_horaria_disponivel',
+	criteriosAvaliacao: 'criterios_avaliacao',
+	trabalhoNoturno: 'trabalho_noturno'
+};
+
+/**
+ * Compara o snapshot da última submissão (audit log) com o estado atual do plano
+ * (camelCase, vindo da query GraphQL) e devolve a lista de campos que mudaram.
+ *
+ * Os campos no resultado mantêm os nomes do audit (snake_case) para consistência
+ * com `auditEventsToTimeline` / `EdicoesTimeline`.
+ */
+export function calcularDiffDesdeUltimaSubmissao(
+	events: AuditLogEntry[],
+	planoAtual: Record<string, unknown>,
+	filter?: { userEmail?: string }
+): DiffItem[] {
+	const snap = obterUltimaSubmissao(events, filter);
+	if (!snap) return [];
+	const out: DiffItem[] = [];
+	for (const [campoFront, campoAudit] of Object.entries(CAMPO_FRONT_TO_AUDIT)) {
+		const cfg = CAMPOS_PLANO[campoAudit];
+		if (!cfg) continue;
+		const a = snap[campoAudit];
+		const b = planoAtual[campoFront];
+		// Se o campo não existe no snapshot, não conseguimos saber se mudou — ignora.
+		if (!(campoAudit in snap)) continue;
+		if (b === undefined) continue;
+		if (valuesEqual(a, b)) continue;
+		out.push({
+			campo: campoAudit,
+			de: serializeValue(a),
+			para: serializeValue(b),
+			mono: !!cfg.mono
+		});
+	}
+	return out;
+}
+
+/**
  * Converte uma lista de eventos de auditoria em entradas da timeline de edições.
  * A ordem dos eventos de entrada é preservada.
  */
