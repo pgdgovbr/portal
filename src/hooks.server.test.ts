@@ -7,6 +7,7 @@ import { handle } from './hooks.server';
 function makeCookies(token?: string) {
 	return {
 		get: (key: string) => (key === 'access_token' ? token ?? null : null),
+		set: vi.fn(),
 	};
 }
 
@@ -49,5 +50,16 @@ describe('hooks.server — handle', () => {
 		const result = await handle({ event, resolve });
 		expect(resolve).toHaveBeenCalledWith(event);
 		expect(result).toBeDefined();
+	});
+
+	it('?token na URL → seta cookie e redireciona para /', async () => {
+		const event = makeEvent('/?token=jwt-from-backend');
+		await expect(handle({ event, resolve })).rejects.toMatchObject({ status: 302 });
+		expect((event.cookies as ReturnType<typeof makeCookies>).set).toHaveBeenCalledWith(
+			'access_token',
+			'jwt-from-backend',
+			expect.objectContaining({ httpOnly: true, path: '/' })
+		);
+		expect(resolve).not.toHaveBeenCalled();
 	});
 });
