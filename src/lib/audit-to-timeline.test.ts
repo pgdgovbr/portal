@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
 	auditEventsToTimeline,
 	formatarQuandoPtBr,
+	obterUltimaSubmissao,
+	calcularDiffDesdeUltimaSubmissao,
+	obterChefiaQueEnviou,
 	type AuditLogEntry
 } from './audit-to-timeline';
 
@@ -142,18 +145,20 @@ describe('auditEventsToTimeline — diff de campos do plano', () => {
 			oldValues: {
 				data_inicio: '2026-05-01',
 				carga_horaria_disponivel: 40,
-				trabalho_noturno: false,
 				criterios_avaliacao: 'antigo',
 				data_termino: '2026-11-30',
-				campo_irrelevante: 'foo'
+				campo_irrelevante: 'foo',
+				// trabalho_noturno aparece no audit log mas não está no schema GraphQL,
+				// então é deliberadamente ignorado pelo diff.
+				trabalho_noturno: false
 			},
 			newValues: {
 				data_inicio: '2026-06-01',
 				carga_horaria_disponivel: 36,
-				trabalho_noturno: true,
 				criterios_avaliacao: 'novo',
 				data_termino: '2026-12-31',
-				campo_irrelevante: 'bar'
+				campo_irrelevante: 'bar',
+				trabalho_noturno: true
 			}
 		});
 		const [t] = auditEventsToTimeline([ev], contexto);
@@ -162,8 +167,8 @@ describe('auditEventsToTimeline — diff de campos do plano', () => {
 		expect(campos).toContain('data_termino');
 		expect(campos).toContain('carga_horaria_disponivel');
 		expect(campos).toContain('criterios_avaliacao');
-		expect(campos).toContain('trabalho_noturno');
 		expect(campos).not.toContain('campo_irrelevante');
+		expect(campos).not.toContain('trabalho_noturno');
 	});
 
 	it('carga_horaria_disponivel é marcada como mono', () => {
@@ -189,17 +194,6 @@ describe('auditEventsToTimeline — diff de campos do plano', () => {
 		expect(item?.para).toBe('36');
 	});
 
-	it('booleanos são serializados como Sim/Não', () => {
-		const ev = makeEvent({
-			action: 'UPDATE',
-			oldValues: { trabalho_noturno: false },
-			newValues: { trabalho_noturno: true }
-		});
-		const [t] = auditEventsToTimeline([ev], contexto);
-		const item = (t.diff ?? []).find((d) => d.campo === 'trabalho_noturno');
-		expect(item?.de).toMatch(/Não/);
-		expect(item?.para).toMatch(/Sim/);
-	});
 });
 
 describe('formatarQuandoPtBr', () => {
@@ -220,6 +214,212 @@ describe('auditEventsToTimeline — formatação do quando', () => {
 		const ev = makeEvent({ createdAt: '2026-05-15T14:30:00Z' });
 		const [t] = auditEventsToTimeline([ev], contexto);
 		expect(t.quando).toMatch(/^\d{2} [a-zç]{3,4} · \d{2}:\d{2}$/);
+	});
+});
+
+describe('obterUltimaSubmissao', () => {
+	it('retorna null se nenhum evento for envio para o outro lado', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({ id: 1, action: 'CREATE', newValues: { data_inicio: '2026-05-01' } }),
+			makeEvent({ id: 2, action: 'UPDATE', newValues: { data_inicio: '2026-06-01' } })
+		];
+		expect(obterUltimaSubmissao(events)).toBeNull();
+	});
+
+	it('retorna newValues da última transição com acao=enviar_para_outro_lado', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({
+				id: 1,
+				action: 'UPDATE',
+				newValues: { acao: 'enviar_para_outro_lado', data_inicio: '2026-05-01' },
+				createdAt: '2026-05-01T09:00:00Z'
+			}),
+			makeEvent({
+				id: 2,
+				action: 'UPDATE',
+				newValues: { data_inicio: '2026-06-01' },
+				createdAt: '2026-05-02T09:00:00Z'
+			}),
+			makeEvent({
+				id: 3,
+				action: 'UPDATE',
+				newValues: { acao: 'enviar_para_outro_lado', data_inicio: '2026-07-01' },
+				createdAt: '2026-05-03T09:00:00Z'
+			})
+		];
+		const snap = obterUltimaSubmissao(events);
+		expect(snap).not.toBeNull();
+		expect(snap?.['data_inicio']).toBe('2026-07-01');
+	});
+
+	it('ignora evento de "enviar" feito pela chefia se filtrado por papel servidor', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({
+				id: 1,
+				action: 'UPDATE',
+				userEmail: 'lucas@pgd-demo.gov.br',
+				newValues: { acao: 'enviar_para_outro_lado', data_inicio: '2026-05-01' },
+				createdAt: '2026-05-01T09:00:00Z'
+			}),
+			makeEvent({
+				id: 2,
+				action: 'UPDATE',
+				userEmail: 'carlos@pgd-demo.gov.br',
+				newValues: { acao: 'enviar_para_outro_lado', data_inicio: '2026-07-01' },
+				createdAt: '2026-05-03T09:00:00Z'
+			})
+		];
+		// Filtra apenas envios do servidor (participanteEmail)
+		const snap = obterUltimaSubmissao(events, { userEmail: 'lucas@pgd-demo.gov.br' });
+		expect(snap?.['data_inicio']).toBe('2026-05-01');
+	});
+});
+
+describe('calcularDiffDesdeUltimaSubmissao', () => {
+	const planoAtual = {
+		dataInicio: '2026-06-01',
+		dataTermino: '2026-12-31',
+		cargaHorariaDisponivel: 36,
+		criteriosAvaliacao: 'novo'
+	};
+
+	it('quando não há submissão anterior retorna lista vazia', () => {
+		const diff = calcularDiffDesdeUltimaSubmissao([], planoAtual);
+		expect(diff).toEqual([]);
+	});
+
+	it('compara o snapshot da última submissão com o plano atual', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({
+				id: 1,
+				action: 'UPDATE',
+				newValues: {
+					acao: 'enviar_para_outro_lado',
+					data_inicio: '2026-05-01',
+					data_termino: '2026-12-31',
+					carga_horaria_disponivel: 40,
+					criterios_avaliacao: 'antigo',
+					// trabalho_noturno está no audit mas não no schema — não deve gerar diff
+					trabalho_noturno: false
+				}
+			})
+		];
+		const diff = calcularDiffDesdeUltimaSubmissao(events, planoAtual);
+		const campos = diff.map((d) => d.campo);
+		expect(campos).toContain('data_inicio');
+		expect(campos).toContain('carga_horaria_disponivel');
+		expect(campos).toContain('criterios_avaliacao');
+		expect(campos).not.toContain('trabalho_noturno');
+		expect(campos).not.toContain('data_termino');
+	});
+
+	it('valores iguais não aparecem no diff', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({
+				id: 1,
+				action: 'UPDATE',
+				newValues: {
+					acao: 'enviar_para_outro_lado',
+					data_inicio: '2026-06-01'
+				}
+			})
+		];
+		const diff = calcularDiffDesdeUltimaSubmissao(events, planoAtual);
+		expect(diff.find((d) => d.campo === 'data_inicio')).toBeUndefined();
+	});
+});
+
+describe('obterChefiaQueEnviou', () => {
+	it('retorna null quando não há nenhum envio da chefia', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({
+				id: 1,
+				action: 'UPDATE',
+				userEmail: 'lucas@pgd-demo.gov.br',
+				newValues: { acao: 'enviar_para_outro_lado' }
+			})
+		];
+		expect(obterChefiaQueEnviou(events, 'lucas@pgd-demo.gov.br')).toBeNull();
+	});
+
+	it('retorna email da chefia do último envio para o participante', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({
+				id: 1,
+				action: 'UPDATE',
+				userEmail: 'lucas@pgd-demo.gov.br',
+				newValues: { acao: 'enviar_para_outro_lado' },
+				createdAt: '2026-05-01T09:00:00Z'
+			}),
+			makeEvent({
+				id: 2,
+				action: 'UPDATE',
+				userEmail: 'carlos@pgd-demo.gov.br',
+				newValues: { acao: 'enviar_para_outro_lado' },
+				createdAt: '2026-05-02T10:00:00Z'
+			})
+		];
+		const r = obterChefiaQueEnviou(events, 'lucas@pgd-demo.gov.br');
+		expect(r).not.toBeNull();
+		expect(r?.email).toBe('carlos@pgd-demo.gov.br');
+	});
+
+	it('ignora envios do próprio participante e pega último de outra pessoa', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({
+				id: 1,
+				action: 'UPDATE',
+				userEmail: 'chefe-antigo@pgd-demo.gov.br',
+				newValues: { acao: 'enviar_para_outro_lado' },
+				createdAt: '2026-05-01T09:00:00Z'
+			}),
+			makeEvent({
+				id: 2,
+				action: 'UPDATE',
+				userEmail: 'lucas@pgd-demo.gov.br',
+				newValues: { acao: 'enviar_para_outro_lado' },
+				createdAt: '2026-05-02T09:00:00Z'
+			}),
+			makeEvent({
+				id: 3,
+				action: 'UPDATE',
+				userEmail: 'chefe-novo@pgd-demo.gov.br',
+				newValues: { acao: 'enviar_para_outro_lado' },
+				createdAt: '2026-05-03T09:00:00Z'
+			})
+		];
+		const r = obterChefiaQueEnviou(events, 'lucas@pgd-demo.gov.br');
+		expect(r?.email).toBe('chefe-novo@pgd-demo.gov.br');
+	});
+
+	it('ignora eventos sem userEmail', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({
+				id: 1,
+				action: 'UPDATE',
+				userEmail: null,
+				newValues: { acao: 'enviar_para_outro_lado' }
+			})
+		];
+		expect(obterChefiaQueEnviou(events, 'lucas@pgd-demo.gov.br')).toBeNull();
+	});
+
+	it('ignora eventos que não sejam UPDATE com acao=enviar_para_outro_lado', () => {
+		const events: AuditLogEntry[] = [
+			makeEvent({
+				id: 1,
+				action: 'UPDATE',
+				userEmail: 'carlos@pgd-demo.gov.br',
+				newValues: { acao: 'assinar' }
+			}),
+			makeEvent({
+				id: 2,
+				action: 'CREATE',
+				userEmail: 'carlos@pgd-demo.gov.br',
+				newValues: {}
+			})
+		];
+		expect(obterChefiaQueEnviou(events, 'lucas@pgd-demo.gov.br')).toBeNull();
 	});
 });
 
