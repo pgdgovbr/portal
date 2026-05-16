@@ -353,5 +353,12 @@
 		:global(.g-3) {
 			grid-template-columns: 1fr !important;
 		}
+		/* Tabela com scroll horizontal — preserva colunas em vez de cortar. */
+		:global(.tbl) {
+			min-width: 640px;
+		}
+		section.card:has(table) {
+			overflow-x: auto;
+		}
 	}
 </style>
