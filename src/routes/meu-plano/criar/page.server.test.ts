@@ -29,7 +29,12 @@ function makeLoadEvent(user: unknown, token: string | undefined = 'fake-token') 
 	} as unknown as Parameters<typeof load>[0];
 }
 
-function makeActionEvent(formData: FormData, token: string | undefined = 'fake-token') {
+function makeActionEvent(
+	formData: FormData,
+	tokenArg: string | null = 'fake-token'
+) {
+	// Explicit `null` → cookies.get devolve undefined (sem token); 'fake-token' (default) → cookie presente.
+	const token = tokenArg ?? undefined;
 	return {
 		cookies: { get: vi.fn().mockReturnValue(token) },
 		request: { formData: vi.fn().mockResolvedValue(formData) },
@@ -135,7 +140,7 @@ describe('meu-plano/criar +page.server — actions', () => {
 	});
 
 	it('salvarRascunho sem token → 401', async () => {
-		const event = makeActionEvent(buildFormData(), undefined);
+		const event = makeActionEvent(buildFormData(), null);
 		const result = (await actions.salvarRascunho(event)) as { status: number };
 		expect(result.status).toBe(401);
 	});
