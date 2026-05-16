@@ -457,11 +457,17 @@
 		.kpi-row {
 			grid-template-columns: repeat(2, 1fr);
 		}
-		/* CTA sticky no rodapé em mobile (assinar/devolver) */
-		.col > section.card:first-child {
+		/* CTA sticky no rodapé em mobile (assinar/devolver).
+		   Escopado à 2ª coluna (sidebar) para não afetar a coluna do plano. */
+		:global(.g-2-1 > .col:nth-child(2) > section.card:first-child) {
 			position: sticky;
 			bottom: 0;
 			z-index: 5;
+			box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+		}
+		.diff-grid {
+			grid-template-columns: 1fr;
+			gap: 6px;
 		}
 	}
 </style>
