@@ -67,4 +67,37 @@ describe('meu-plano +page.server — load', () => {
 		const event = makeEvent(null);
 		await expect(load(event)).rejects.toMatchObject({ status: 302 });
 	});
+
+	it('retorna planosAnteriores filtrado por status terminal (CONCLUIDO, AVALIADO, CANCELADO)', async () => {
+		stubFetch([
+			{ ...mockBackendPt, id: 'p-conc', status: 4 }, // CONCLUIDO
+			{ ...mockBackendPt, id: 'p-canc', status: 1 }, // CANCELADO
+			{ ...mockBackendPt, id: 'p-exec', status: 3 }, // EM_EXECUCAO
+			{ ...mockBackendPt, id: 'p-rasc', status: 5 }, // RASCUNHO_PARTICIPANTE
+		]);
+		const result = (await load(makeEvent({ role: 'servidor' }))) as {
+			planosAnteriores: { id: string; status: string }[];
+		};
+		const ids = result.planosAnteriores.map((p) => p.id).sort();
+		expect(ids).toEqual(['p-canc', 'p-conc']);
+		expect(result.planosAnteriores.every((p) =>
+			['CONCLUIDO', 'AVALIADO', 'CANCELADO'].includes(p.status)
+		)).toBe(true);
+	});
+
+	it('PT em rascunho NÃO entra em planosAnteriores', async () => {
+		stubFetch([
+			{ ...mockBackendPt, id: 'p-rasc-p', status: 5 }, // RASCUNHO_PARTICIPANTE
+			{ ...mockBackendPt, id: 'p-rasc-c', status: 6 }, // RASCUNHO_CHEFIA
+			{ ...mockBackendPt, id: 'p-aguard-p', status: 7 }, // AGUARDANDO_ASSINATURA_PARTICIPANTE
+			{ ...mockBackendPt, id: 'p-aguard-c', status: 2 }, // AGUARDANDO_ASSINATURA_CHEFIA
+		]);
+		const result = (await load(makeEvent({ role: 'servidor' }))) as {
+			planosAnteriores: { id: string; status: string }[];
+			planoEmPactuacao: { id: string; status: string } | null;
+		};
+		expect(result.planosAnteriores).toEqual([]);
+		// e o PT em rascunho é exposto como planoEmPactuacao
+		expect(result.planoEmPactuacao).not.toBeNull();
+	});
 });
