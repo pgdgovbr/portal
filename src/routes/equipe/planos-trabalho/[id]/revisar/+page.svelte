@@ -45,8 +45,13 @@
 			credentials: 'include',
 			body: JSON.stringify({ query, variables })
 		});
-		const { errors } = await res.json();
-		if (errors?.length) throw new Error(errors[0].message);
+		// Falha de transporte (401/500/etc.): backend pode não retornar JSON válido,
+		// então NÃO seguimos como sucesso silencioso. Lança erro antes do parse.
+		if (!res.ok) {
+			throw new Error(`HTTP ${res.status}`);
+		}
+		const payload = (await res.json()) as { errors?: Array<{ message: string }> };
+		if (payload.errors?.length) throw new Error(payload.errors[0].message);
 	}
 
 	async function assinar() {
