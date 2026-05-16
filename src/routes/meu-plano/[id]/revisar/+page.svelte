@@ -459,5 +459,16 @@
 		.kpi-row {
 			grid-template-columns: repeat(2, 1fr);
 		}
+		/* Sticky CTA no rodapé em mobile (AssinaturaCard / devolver). */
+		:global(.g-2-1 > .col:nth-child(2) > section.card:first-child) {
+			position: sticky;
+			bottom: 0;
+			z-index: 5;
+			box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+		}
+		.diff-grid {
+			grid-template-columns: 1fr;
+			gap: 6px;
+		}
 	}
 </style>

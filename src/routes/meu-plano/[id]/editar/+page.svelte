@@ -500,4 +500,13 @@
 		background: white;
 		color: var(--c-primary);
 	}
+
+	@media (max-width: 640px) {
+		.cta-card {
+			position: sticky;
+			bottom: 0;
+			z-index: 5;
+			box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+		}
+	}
 </style>
