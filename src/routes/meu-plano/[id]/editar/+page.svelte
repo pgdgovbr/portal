@@ -10,37 +10,37 @@
 
 	let { data }: { data: PageData } = $props();
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const plano = $derived((data as any).plano);
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const historico = $derived<any[]>((data as any).historico ?? []);
+	const plano = $derived(data.plano);
+	const historico = $derived(data.historico ?? []);
 
 	// Estado dos campos editáveis (snapshot inicial do data;
 	// edições do usuário não voltam a sincronizar — auto-save persiste no backend).
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const initialPlano = untrack(() => (data as any).plano);
+	const initialPlano = untrack(() => data.plano);
 	let dataInicio = $state<string>(initialPlano?.dataInicio ?? '');
 	let dataTermino = $state<string>(initialPlano?.dataTermino ?? '');
 	let cargaHorariaDisponivel = $state<number>(initialPlano?.cargaHorariaDisponivel ?? 0);
 	let criteriosAvaliacao = $state<string>(initialPlano?.criteriosAvaliacao ?? '');
-	let trabalhoNoturno = $state<boolean>(false);
+	// TODO(schema): `PlanoTrabalhoType` no schema GraphQL não expõe `trabalhoNoturno`,
+	// embora `EditarPlanoTrabalhoInput` aceite o campo. Sem leitura, não temos como
+	// hidratar o estado atual; deixar editável produziria inconsistência (usuário
+	// poderia "ligar" um valor já ligado e nunca ver o estado real). Mantemos o
+	// checkbox visível porém desabilitado até que o backend exponha o campo.
+	const trabalhoNoturno = false;
 
 	// Indicador de auto-save
 	let ultimoSalvoEm = $state<Date | null>(null);
 	let salvando = $state(false);
 	let erroSave = $state<string | null>(null);
 
-	// Tick reativo p/ "Auto-salvo há Ns" — incrementado a cada 1s
+	// Tick reativo p/ "Auto-salvo há Ns" — incrementado a cada 1s.
+	// Usar $effect garante cleanup do interval no unmount.
 	let nowTick = $state(Date.now());
-
-	if (typeof window !== 'undefined') {
+	$effect(() => {
 		const id = setInterval(() => {
 			nowTick = Date.now();
 		}, 1000);
-		// cleanup ao desmontar via $effect.root → simples: deixa rodar enquanto a página vive
-		// (em SPA, sair da rota recria o componente)
-		void id;
-	}
+		return () => clearInterval(id);
+	});
 
 	const segundosDesdeSalvo = $derived(
 		ultimoSalvoEm ? Math.max(0, Math.floor((nowTick - ultimoSalvoEm.getTime()) / 1000)) : null
@@ -103,6 +103,7 @@
 		pendingPatch = { ...pendingPatch, ...patch };
 		if (debounceTimer) clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
+			debounceTimer = null;
 			void flushSave();
 		}, 800);
 	}
@@ -110,6 +111,17 @@
 	function onCampoChange(campo: string, valor: unknown) {
 		debouncedSave({ [campo]: valor });
 	}
+
+	// Cleanup do debounce em unmount: cancela qualquer save pendente
+	// para evitar disparar mutation em componente já desmontado.
+	$effect(() => {
+		return () => {
+			if (debounceTimer) {
+				clearTimeout(debounceTimer);
+				debounceTimer = null;
+			}
+		};
+	});
 
 	// Menu overflow
 	let menuAberto = $state(false);
@@ -130,8 +142,16 @@
 
 	async function assinarEEnviar() {
 		if (!plano) return;
-		// Garante que pendências de auto-save foram salvas antes de enviar
-		if (debounceTimer) clearTimeout(debounceTimer);
+		// Aguarda um save em voo terminar antes de enfileirar novo work, para
+		// não persistir um patch antigo APÓS o envio (race condition).
+		while (salvando) {
+			await new Promise((r) => setTimeout(r, 50));
+		}
+		// Cancela debounce pendente e força flush das edições acumuladas.
+		if (debounceTimer) {
+			clearTimeout(debounceTimer);
+			debounceTimer = null;
+		}
 		await flushSave();
 		if (erroSave) return;
 
@@ -149,7 +169,12 @@
 
 	function formatDateBr(iso: string): string {
 		if (!iso) return '—';
-		const d = new Date(iso);
+		// Parse manual de YYYY-MM-DD para evitar shift UTC→BRT (que pode mostrar
+		// o dia anterior). Fallback para Date() apenas para strings com hora.
+		const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+		const d = m
+			? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+			: new Date(iso);
 		return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 	}
 </script>
@@ -273,14 +298,18 @@
 						/>
 					</div>
 					<div class="field" style="margin-top:14px">
-						<label style="display:flex; gap:8px; align-items:center; font-weight:500">
+						<label style="display:flex; gap:8px; align-items:center; font-weight:500; opacity:.6">
 							<input
 								type="checkbox"
-								bind:checked={trabalhoNoturno}
-								onchange={() => onCampoChange('trabalhoNoturno', trabalhoNoturno)}
+								checked={trabalhoNoturno}
+								disabled
+								aria-describedby="trabalho-noturno-hint"
 							/>
 							Trabalho noturno autorizado
 						</label>
+						<p id="trabalho-noturno-hint" style="font-size:12px; color:var(--c-muted); margin:4px 0 0 24px">
+							Indisponível nesta tela (campo ainda não exposto pela API).
+						</p>
 					</div>
 				</section>
 
