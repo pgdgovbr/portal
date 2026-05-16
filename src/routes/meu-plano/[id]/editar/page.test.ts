@@ -145,4 +145,106 @@ describe('Editar Plano (+page.svelte)', () => {
 			expect(screen.getByText(/Plano não encontrado/i)).toBeInTheDocument();
 		});
 	});
+
+	describe('trabalhoNoturno', () => {
+		it('checkbox aparece desabilitado (schema não expõe campo para hidratação)', () => {
+			const { container } = render(EditarPage, { props: { data: makeData() } });
+			const cb = container.querySelector<HTMLInputElement>(
+				'[data-testid="card-modalidade"] input[type="checkbox"]'
+			);
+			expect(cb).toBeTruthy();
+			expect(cb?.disabled).toBe(true);
+		});
+	});
+
+	describe('cleanup em unmount', () => {
+		beforeEach(() => {
+			vi.useFakeTimers({ shouldAdvanceTime: true });
+		});
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it('auto-save pendente é cancelado em unmount', async () => {
+			const { container, unmount } = render(EditarPage, { props: { data: makeData() } });
+			const input = container.querySelector<HTMLInputElement>('#carga-horaria');
+			if (!input) throw new Error('input não encontrado');
+
+			input.value = '35';
+			await fireEvent.change(input);
+
+			// Desmonta antes de o debounce disparar
+			await vi.advanceTimersByTimeAsync(300);
+			unmount();
+
+			// Avança o que faltava do debounce: nenhuma chamada deve ser feita
+			await vi.advanceTimersByTimeAsync(900);
+			expect(gqlFetch).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('assinarEEnviar com save em voo', () => {
+		beforeEach(() => {
+			vi.useFakeTimers({ shouldAdvanceTime: true });
+		});
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it('aguarda flushSave em voo antes de chamar enviarPtParaOutroLado', async () => {
+			// Sequência:
+			// 1) gqlFetch (editar) — promise resolvida só quando releaseEditar() for chamado
+			// 2) gqlFetch (enviar) — resolve imediato
+			let releaseEditar!: () => void;
+			const editarPending = new Promise<void>((res) => {
+				releaseEditar = res;
+			});
+			let editarChamado = false;
+			let enviarChamado = false;
+			let editarTerminouAntesDoEnviar = false;
+
+			(gqlFetch as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+				async (query: string) => {
+					if (query.includes('editarPlanoTrabalho')) {
+						editarChamado = true;
+						await editarPending;
+						if (!enviarChamado) editarTerminouAntesDoEnviar = true;
+						return { editarPlanoTrabalho: { id: '42', status: 5 } };
+					}
+					if (query.includes('enviarPtParaOutroLado')) {
+						enviarChamado = true;
+						return { enviarPtParaOutroLado: { id: '42', status: 2 } };
+					}
+					return {};
+				}
+			);
+
+			const { container } = render(EditarPage, { props: { data: makeData() } });
+
+			// Dispara edição → começa save (gqlFetch editar pendente)
+			const input = container.querySelector<HTMLInputElement>('#carga-horaria');
+			if (!input) throw new Error('input não encontrado');
+			input.value = '40';
+			await fireEvent.change(input);
+			await vi.advanceTimersByTimeAsync(900); // debounce
+
+			expect(editarChamado).toBe(true);
+			expect(enviarChamado).toBe(false);
+
+			// Usuário clica "Assinar e enviar" enquanto save está em voo
+			const enviarBtns = screen.getAllByRole('button', { name: /Assinar e enviar/i });
+			fireEvent.click(enviarBtns[0]);
+
+			// Avança alguns ticks: enviar ainda não deve ter rodado
+			await vi.advanceTimersByTimeAsync(200);
+			expect(enviarChamado).toBe(false);
+
+			// Libera o editar
+			releaseEditar();
+			await vi.advanceTimersByTimeAsync(200);
+
+			expect(enviarChamado).toBe(true);
+			expect(editarTerminouAntesDoEnviar).toBe(true);
+		});
+	});
 });
