@@ -1,14 +1,37 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import Icon from '$lib/components/Icon.svelte';
 	import Stepper from '$lib/components/Stepper.svelte';
-	import { env } from '$env/dynamic/public';
 	import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	let {
+		data,
+		form,
+	}: {
+		data: PageData;
+		form: {
+			error?: string;
+			planoCriadoId?: string;
+			contribuicoesCriadas?: number;
+		} | null;
+	} = $props();
 
 	const user = $derived((data as any).user);
 	const planosEntregas = $derived((data as any).planosEntregas ?? []);
+	const participante = $derived((data as any).participante ?? null);
+
+	// Retomada de falha parcial — preservados entre submits via hidden inputs.
+	let planoCriadoId = $state<string>('');
+	let contribuicoesCriadas = $state<number>(0);
+	let submitError = $state<string | null>(null);
+
+	$effect(() => {
+		if (form?.error) submitError = form.error;
+		if (form?.planoCriadoId) planoCriadoId = form.planoCriadoId;
+		if (typeof form?.contribuicoesCriadas === 'number')
+			contribuicoesCriadas = form.contribuicoesCriadas;
+		// Sucesso → server fez redirect; nada a fazer aqui.
+	});
 
 	const STEPS = [
 		'Período',
@@ -153,105 +176,27 @@
 		return new Date(d).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
 	}
 
-	async function executarGraphQL(query: string, variables: Record<string, unknown>) {
-		const GRAPHQL_URL =
-			env.PUBLIC_GRAPHQL_URL ?? 'https://pgd-libre-klvx64dufq-rj.a.run.app/graphql';
-		const res = await fetch(GRAPHQL_URL, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			credentials: 'include',
-			body: JSON.stringify({ query, variables }),
-		});
-		const { data: payload, errors } = await res.json();
-		if (errors?.length) throw new Error(errors[0].message);
-		return payload;
-	}
-
-	async function criarPlano(): Promise<string> {
-		const mutation = `
-			mutation CriarMeuPlano($input: CriarPlanoTrabalhoInput!) {
-				criarPlanoTrabalho(input: $input) { id status }
+	// Submit handler: form action no servidor cuida das mutations sequenciais
+	// num único try/catch — qualquer falha retorna `planoCriadoId` + `contribuicoesCriadas`
+	// para o cliente, permitindo retomada idempotente sem criar PT órfão.
+	function onSubmit() {
+		loading = true;
+		submitError = null;
+		dismissDica();
+		return async ({
+			result,
+			update,
+		}: {
+			result: { type: string };
+			update: () => Promise<void>;
+		}) => {
+			await update();
+			loading = false;
+			// Sucesso (`redirect`) já foi processado pelo enhance; falhas chegam via `form` prop.
+			if (result.type === 'failure') {
+				// erros já estarão em `form.error` via $effect acima
 			}
-		`;
-		const horas = cargaHoras || parseInt(cargaCustom);
-		// Servidor cria para si mesmo; backend infere participante a partir do user.
-		// O input ainda exige campos identificadores do PT — usamos placeholders gerados
-		// pelo backend quando não fornecidos no contexto do servidor.
-		const idPlanoTrabalho = `PT-${Date.now()}`;
-		const input = {
-			idPlanoTrabalho,
-			origemUnidade: 'SIAPE',
-			codUnidadeAutorizadora: 0,
-			codUnidadeExecutora: 0,
-			codUnidadeLotacaoParticipante: 0,
-			cpfParticipante: '',
-			matriculaSiape: '',
-			dataInicio,
-			dataTermino: dataFim,
-			cargaHorariaDisponivel: horas,
-			criteriosAvaliacao: criterios.join('\n'),
-			planoEntregasId: planoEntregasId || null,
 		};
-		const payload = await executarGraphQL(mutation, { input });
-		return payload.criarPlanoTrabalho.id as string;
-	}
-
-	async function adicionarContribuicoes(planoId: string) {
-		const mutation = `
-			mutation AddContrib($pid: ID!, $input: AdicionarContribuicaoInput!) {
-				adicionarContribuicao(planoTrabalhoId: $pid, input: $input) { id }
-			}
-		`;
-		for (const [i, c] of contribuicoes.entries()) {
-			await executarGraphQL(mutation, {
-				pid: planoId,
-				input: {
-					idContribuicao: `C-${Date.now()}-${i}`,
-					tipoContribuicao: c.tipo,
-					percentualContribuicao: c.percentual,
-					descricao: c.descricao,
-					idPlanoEntregas: c.idPlanoEntregas ?? null,
-				},
-			});
-		}
-	}
-
-	async function enviarParaChefia(planoId: string) {
-		const mutation = `
-			mutation EnviarPt($id: ID!) {
-				enviarPtParaOutroLado(planoId: $id) { id status }
-			}
-		`;
-		await executarGraphQL(mutation, { id: planoId });
-	}
-
-	async function submitRascunho() {
-		loading = true;
-		try {
-			const planoId = await criarPlano();
-			await adicionarContribuicoes(planoId);
-			dismissDica();
-			goto(`/meu-plano/${planoId}/editar`);
-		} catch (e) {
-			alert((e as Error).message || 'Erro ao salvar rascunho. Tente novamente.');
-		} finally {
-			loading = false;
-		}
-	}
-
-	async function submitAssinarEnviar() {
-		loading = true;
-		try {
-			const planoId = await criarPlano();
-			await adicionarContribuicoes(planoId);
-			await enviarParaChefia(planoId);
-			dismissDica();
-			goto('/meu-plano?plano=enviado');
-		} catch (e) {
-			alert((e as Error).message || 'Erro ao enviar plano. Tente novamente.');
-		} finally {
-			loading = false;
-		}
 	}
 </script>
 
@@ -320,7 +265,49 @@
 		</div>
 	{/if}
 
-	<div class="g-2-1">
+	{#if submitError}
+		<div
+			role="alert"
+			data-testid="wizard-submit-error"
+			style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:var(--r-md); padding:12px 16px; margin-bottom:var(--gap-sec); display:flex; gap:10px; align-items:flex-start"
+		>
+			<Icon name="alert-triangle" size={18} />
+			<div style="flex:1; font-size:13px; line-height:1.5">
+				<strong>Não foi possível salvar.</strong> {submitError}
+				{#if planoCriadoId}
+					<div style="margin-top:6px; font-size:12px; color:#7f1d1d">
+						Rascunho parcial preservado — ao tentar novamente, o sistema retomará do ponto da falha.
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
+	<form
+		method="POST"
+		use:enhance={onSubmit}
+		class="g-2-1"
+	>
+		<input type="hidden" name="dataInicio" value={dataInicio} />
+		<input type="hidden" name="dataFim" value={dataFim} />
+		<input
+			type="hidden"
+			name="cargaHoras"
+			value={cargaHoras || parseInt(cargaCustom) || 0}
+		/>
+		<input type="hidden" name="planoEntregasId" value={planoEntregasId} />
+		<input type="hidden" name="criterios" value={JSON.stringify(criterios)} />
+		<input
+			type="hidden"
+			name="contribuicoes"
+			value={JSON.stringify(contribuicoes)}
+		/>
+		<input type="hidden" name="planoCriadoId" value={planoCriadoId} />
+		<input
+			type="hidden"
+			name="contribuicoesCriadas"
+			value={String(contribuicoesCriadas)}
+		/>
 		<section class="card">
 			<div class="card-hd">
 				<div>
@@ -516,6 +503,7 @@
 								/>
 								<button
 									class="tn-iconbtn"
+									type="button"
 									style="width:32px;height:32px;color:var(--c-danger)"
 									onclick={() => removeCriterio(i)}
 									aria-label="Remover critério"
@@ -597,6 +585,7 @@
 								</div>
 								<button
 									class="tn-iconbtn"
+									type="button"
 									style="width:32px;height:32px;color:var(--c-danger)"
 									onclick={() => removeContribuicao(i)}
 									aria-label="Remover contribuição"
@@ -654,7 +643,7 @@
 										<select id="contrib-pe" class="select" bind:value={novoIdPe}>
 											<option value="">Selecione…</option>
 											{#each planosEntregas as pe}
-												<option value={pe.idPlanoEntregas}
+												<option value={pe.id}
 													>{pe.idPlanoEntregas}</option
 												>
 											{/each}
@@ -853,16 +842,16 @@
 					{:else}
 						<button
 							class="btn btn-ghost"
-							type="button"
-							onclick={submitRascunho}
+							type="submit"
+							formaction="?/salvarRascunho"
 							disabled={loading}
 						>
 							{#if loading}Salvando…{:else}Salvar rascunho{/if}
 						</button>
 						<button
 							class="btn btn-primary btn-lg"
-							type="button"
-							onclick={submitAssinarEnviar}
+							type="submit"
+							formaction="?/assinarEnviar"
 							disabled={loading}
 						>
 							{#if loading}
@@ -948,5 +937,5 @@
 				</section>
 			{/if}
 		</div>
-	</div>
+	</form>
 </div>
