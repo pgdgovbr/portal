@@ -28,7 +28,6 @@ function makePt(status: number, over: Record<string, unknown> = {}) {
 		dataTermino: '2027-01-31',
 		cargaHorariaDisponivel: 30,
 		criteriosAvaliacao: 'novo',
-		trabalhoNoturno: false,
 		contribuicoes: [],
 		avaliacoes: [],
 		dataAssinaturaChefia: '2026-05-14T16:08:00Z',
@@ -51,10 +50,26 @@ const baseHistorico = [
 			data_inicio: '2026-08-01',
 			data_termino: '2027-01-31',
 			carga_horaria_disponivel: 30,
-			criterios_avaliacao: 'antigo',
-			trabalho_noturno: false
+			criterios_avaliacao: 'antigo'
 		},
 		createdAt: '2026-05-10T09:00:00Z'
+	},
+	{
+		id: 2,
+		tableName: 'plano_trabalho',
+		recordId: 'pt-1',
+		action: 'UPDATE',
+		userId: 99,
+		userEmail: 'carlos@pgd-demo.gov.br',
+		oldValues: null,
+		newValues: {
+			acao: 'enviar_para_outro_lado',
+			data_inicio: '2026-08-01',
+			data_termino: '2027-01-31',
+			carga_horaria_disponivel: 30,
+			criterios_avaliacao: 'novo'
+		},
+		createdAt: '2026-05-12T15:00:00Z'
 	}
 ];
 
@@ -106,7 +121,7 @@ describe('/meu-plano/[id]/revisar +page.server — load', () => {
 		const result: any = await load(makeEvent());
 		expect(result.plano).toBeTruthy();
 		expect(result.plano.status).toBe('AGUARDANDO_ASSINATURA_PARTICIPANTE');
-		expect(result.historico).toHaveLength(1);
+		expect(result.historico).toHaveLength(2);
 		// diff: criterios_avaliacao mudou de 'antigo' para 'novo'
 		expect(Array.isArray(result.diff)).toBe(true);
 		const campos = result.diff.map((d: { campo: string }) => d.campo);
@@ -177,5 +192,56 @@ describe('/meu-plano/[id]/revisar +page.server — load', () => {
 
 		const result: any = await load(makeEvent());
 		expect(result.plano.dataAssinaturaChefia).toBeTruthy();
+	});
+
+	it('chefiaNome vem do audit log (último envio para o participante), não de listarParticipantes', async () => {
+		// listarParticipantes propositalmente tem outra pessoa que NÃO enviou o PT
+		// pra garantir que o helper não está usando heurística de "primeiro participante diferente"
+		stubGraphQL(() => ({
+			planoTrabalho: makePt(7),
+			historicoPlanoTrabalho: baseHistorico, // chefia = carlos@pgd-demo.gov.br
+			listarParticipantes: [
+				baseParticipante,
+				{
+					id: 'p-aleatorio',
+					nome: 'Pessoa Aleatória',
+					matriculaSiape: '0000001',
+					email: 'aleatorio@pgd-demo.gov.br'
+				},
+				{
+					id: 'p-chefia',
+					nome: 'Carlos Mendes',
+					matriculaSiape: '1111111',
+					email: 'carlos@pgd-demo.gov.br'
+				}
+			]
+		}));
+
+		const result: any = await load(makeEvent());
+		// Como a chefia (carlos@) está em listarParticipantes, resolve para "Carlos Mendes"
+		expect(result.chefiaNome).toBe('Carlos Mendes');
+	});
+
+	it('chefiaNome cai para o email quando a chefia não está em listarParticipantes', async () => {
+		stubGraphQL(() => ({
+			planoTrabalho: makePt(7),
+			historicoPlanoTrabalho: baseHistorico, // chefia = carlos@pgd-demo.gov.br
+			listarParticipantes: [baseParticipante] // só o servidor; chefia não está
+		}));
+
+		const result: any = await load(makeEvent());
+		expect(result.chefiaNome).toBe('carlos@pgd-demo.gov.br');
+	});
+
+	it('chefiaNome fallback genérico quando não há registro de chefia no audit', async () => {
+		stubGraphQL(() => ({
+			planoTrabalho: makePt(7),
+			// só o envio do próprio servidor — sem registro de chefia
+			historicoPlanoTrabalho: [baseHistorico[0]],
+			listarParticipantes: [baseParticipante]
+		}));
+
+		const result: any = await load(makeEvent());
+		expect(result.chefiaNome).toBe('Chefia');
 	});
 });
