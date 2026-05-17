@@ -154,7 +154,7 @@ describe('/equipe/planos-trabalho/[id]/editar +page.server — load', () => {
 
 		await expect(load(makeEvent({ user: null }))).rejects.toMatchObject({
 			status: 302,
-			location: '/'
+			location: '/login'
 		});
 	});
 });
