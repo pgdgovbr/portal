@@ -28,7 +28,7 @@ const QUERY = `
  *  - "aguardar": bola está com o servidor
  *  - "ver": plano em execução ou já finalizado
  */
-export function derivarAcaoChefia(status: StatusPlano | null): 'assinar' | 'aguardar' | 'ver' {
+export function _derivarAcaoChefia(status: StatusPlano | null): 'assinar' | 'aguardar' | 'ver' {
 	if (!status) return 'aguardar';
 	if (status === 'AGUARDANDO_ASSINATURA_CHEFIA' || status === 'RASCUNHO_CHEFIA') return 'assinar';
 	if (status === 'RASCUNHO_PARTICIPANTE' || status === 'AGUARDANDO_ASSINATURA_PARTICIPANTE')
@@ -57,7 +57,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
 				...pl,
 				status: statusStr ?? String(pl.status),
 				dataFim: pl.dataTermino,
-				acao: derivarAcaoChefia(statusStr),
+				acao: _derivarAcaoChefia(statusStr),
 				contribuicoes: (pl.contribuicoes ?? []).map((c: any) => ({
 					...c,
 					registrosExecucao: [], // not exposed in current schema

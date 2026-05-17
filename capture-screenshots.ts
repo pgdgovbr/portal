@@ -21,7 +21,12 @@ const PERSONAS = {
   servidor1:  { email: 'servidor1@pgd-demo.gov.br', name: 'Ana Silva',       role: 'servidor' },
   servidor2:  { email: 'servidor2@pgd-demo.gov.br', name: 'João Santos',     role: 'servidor' },
   servidor3:  { email: 'servidor3@pgd-demo.gov.br', name: 'Carla Mendes',    role: 'servidor' },
+  servidor4:  { email: 'servidor4@pgd-demo.gov.br', name: 'Lucas Ramos',     role: 'servidor' },
+  servidor5:  { email: 'servidor5@pgd-demo.gov.br', name: 'Pedro Alves',     role: 'servidor' },
+  servidor6:  { email: 'servidor6@pgd-demo.gov.br', name: 'Felipe Costa',    role: 'servidor' },
+  servidor7:  { email: 'servidor7@pgd-demo.gov.br', name: 'Marta Silva',     role: 'servidor' },
   chefe1:     { email: 'chefe1@pgd-demo.gov.br',    name: 'Carlos Souza',    role: 'chefe_imediato' },
+  chefe2:     { email: 'chefe2@pgd-demo.gov.br',    name: 'Beatriz Lima',    role: 'chefe_imediato' },
   gestor:     { email: 'gestor@pgd-demo.gov.br',    name: 'Maria Fernanda',  role: 'gestor_unidade' },
   admin:      { email: 'admin@pgd-demo.gov.br',     name: 'Roberto Admin',   role: 'admin' },
 };
@@ -203,6 +208,18 @@ async function captureWizard(page: Page) {
   console.log('  [wizard criar plano]');
   await go(page, '/equipe/planos-trabalho/novo');
 
+  // Step de exceção (pactuação bilateral): chefia precisa confirmar antes de seguir.
+  // Captura desse step PRIMEIRO — vira `novo-pt-excecao.png`.
+  await shot(page, 'chefia/novo-pt-excecao.png');
+
+  // Confirmar exceção para liberar o wizard real
+  const btnExcecao = page.getByTestId('btn-confirmar-excecao');
+  const hasExcecao = await btnExcecao.isVisible({ timeout: 4000 }).catch(() => false);
+  if (hasExcecao) {
+    await btnExcecao.click();
+    await page.waitForTimeout(300);
+  }
+
   // Screenshot passo 1 (estado inicial — antes de preencher)
   await shot(page, 'chefia/criar-plano-passo1.png');
 
@@ -342,6 +359,192 @@ async function captureDemo(browser: ReturnType<typeof chromium.launch> extends P
   await ctxG.close();
 }
 
+// ─── Pactuação bilateral (Fase 12) ────────────────────────────────────────────
+
+async function fillWizardStep0(page: Page) {
+  // Datas: início hoje, fim em 6 meses
+  const hoje = new Date();
+  const fim = new Date(hoje);
+  fim.setMonth(fim.getMonth() + 6);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  await page.locator('input[type="date"]').first().fill(fmt(hoje));
+  await page.locator('input[type="date"]').nth(1).fill(fmt(fim));
+  await page.waitForTimeout(200);
+}
+
+async function addContribServidor(page: Page, desc: string, pct: number) {
+  await page.locator('#contrib-desc').fill(desc);
+  // O campo de % é controlado por bind:value — limpar antes para evitar concat
+  const pctInput = page.locator('#contrib-pct');
+  await pctInput.fill(String(pct));
+  await page.getByRole('button', { name: /adicionar contribuição/i }).click();
+  await page.waitForTimeout(300);
+}
+
+async function capturePactuacao(browser: ReturnType<typeof chromium.launch> extends Promise<infer B> ? B : never) {
+  console.log('\n[PACTUAÇÃO BILATERAL — Marta / Felipe / Lucas / Ana / Beatriz]');
+
+  // ── 1. Marta — estado vazio em /meu-plano ─────────────────────────────────
+  console.log('  [Marta — estado vazio + wizard de criação]');
+  const ctxM = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctxM, PERSONAS.servidor7);
+  const pageM = await ctxM.newPage();
+
+  await go(pageM, '/meu-plano');
+  await shot(pageM, 'servidor/meu-plano-vazio.png');
+
+  // ── 2-4. Marta — wizard /meu-plano/criar (passos 1, 4, 5) ────────────────
+  await go(pageM, '/meu-plano/criar');
+  await pageM.waitForTimeout(400);
+  await fillWizardStep0(pageM);
+  await shot(pageM, 'servidor/criar-plano-passo1.png');
+
+  // Avançar até step 3 (contribuições)
+  await pageM.getByRole('button', { name: /próximo/i }).click(); // step 1
+  await pageM.waitForTimeout(250);
+  await pageM.getByRole('button', { name: /próximo/i }).click(); // step 2
+  await pageM.waitForTimeout(250);
+  await pageM.getByRole('button', { name: /próximo/i }).click(); // step 3 (contribuições)
+  await pageM.waitForTimeout(400);
+
+  await addContribServidor(pageM, 'Apoio em projetos transversais da CGPGD', 60);
+  await addContribServidor(pageM, 'Documentação e reuniões de equipe', 40);
+  await shot(pageM, 'servidor/criar-plano-contribuicoes.png');
+
+  // Avançar para step 4 (revisão)
+  await pageM.getByRole('button', { name: /próximo/i }).click();
+  await pageM.waitForTimeout(400);
+  await shot(pageM, 'servidor/criar-plano-revisao.png');
+
+  await ctxM.close();
+
+  // ── 5. Ana — CloneDialog aberto ───────────────────────────────────────────
+  console.log('  [Ana — modal de clonar plano anterior]');
+  const ctxA = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctxA, PERSONAS.servidor1);
+  const pageA = await ctxA.newPage();
+  await go(pageA, '/meu-plano');
+  await pageA.waitForTimeout(400);
+  // Ana tem PT em execução → o botão "Clonar" aparece no aside "Planos anteriores"
+  // como ícone (title="Clonar"). Tentamos primeiro a CTA grande "Clonar plano anterior",
+  // depois caímos no botão do aside.
+  const btnCtaClone = pageA.getByRole('button', { name: /clonar plano anterior/i });
+  const hasCta = await btnCtaClone.isVisible({ timeout: 2000 }).catch(() => false);
+  if (hasCta) {
+    await btnCtaClone.click();
+  } else {
+    const btnAsideClone = pageA.locator('button[title="Clonar"]').first();
+    const hasAside = await btnAsideClone.isVisible({ timeout: 2000 }).catch(() => false);
+    if (hasAside) {
+      await btnAsideClone.click();
+    } else {
+      console.log('  ! botão Clonar não encontrado para Ana');
+    }
+  }
+  await pageA.waitForTimeout(400);
+  // Aguarda o título do modal aparecer
+  const tituloModal = pageA.getByText(/Clonar plano de trabalho/i).first();
+  const hasModal = await tituloModal.isVisible({ timeout: 2000 }).catch(() => false);
+  if (hasModal) {
+    await shot(pageA, 'servidor/clonar-modal.png');
+    await pageA.keyboard.press('Escape');
+    await pageA.waitForTimeout(200);
+  } else {
+    console.log('  ! modal de clone não abriu');
+  }
+  await ctxA.close();
+
+  // ── 6. Lucas — editar rascunho (status 5 RASCUNHO_PARTICIPANTE) ──────────
+  console.log('  [Lucas — editar rascunho]');
+  const ctxL = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctxL, PERSONAS.servidor4);
+  const pageL = await ctxL.newPage();
+
+  const lucasResp = await ctxL.request.post(`${BACKEND}/graphql`, {
+    data: { query: '{ meusPlanosTrabalho { id status } }' },
+  });
+  const lucasPts = (await lucasResp.json())?.data?.meusPlanosTrabalho ?? [];
+  // status 5 = RASCUNHO_PARTICIPANTE
+  const lucasPt = lucasPts.find((p: any) => p.status === 5) ?? lucasPts[0];
+  if (lucasPt?.id) {
+    await go(pageL, `/meu-plano/${lucasPt.id}/editar`);
+    await shot(pageL, 'servidor/editar-rascunho.png');
+  } else {
+    console.log('  ! Lucas sem PT rascunho — pulando editar-rascunho.png');
+  }
+  await ctxL.close();
+
+  // ── 7-8. Felipe — dashboard com card "aguardando" + revisar ajuste ──────
+  console.log('  [Felipe — dashboard + revisar ajuste da chefia]');
+  const ctxF = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctxF, PERSONAS.servidor6);
+  const pageF = await ctxF.newPage();
+
+  await go(pageF, '/');
+  await shot(pageF, 'servidor/dashboard-aguardando.png');
+
+  const felipeResp = await ctxF.request.post(`${BACKEND}/graphql`, {
+    data: { query: '{ meusPlanosTrabalho { id status } }' },
+  });
+  const felipePts = (await felipeResp.json())?.data?.meusPlanosTrabalho ?? [];
+  // status 7 = AGUARDANDO_ASSINATURA_PARTICIPANTE
+  const felipePt = felipePts.find((p: any) => p.status === 7) ?? felipePts[0];
+  if (felipePt?.id) {
+    await go(pageF, `/meu-plano/${felipePt.id}/revisar`);
+    await shot(pageF, 'servidor/revisar-ajuste.png');
+  } else {
+    console.log('  ! Felipe sem PT em aguardando — pulando revisar-ajuste.png');
+  }
+  await ctxF.close();
+
+  // ── 9. Beatriz — dashboard com pendências ────────────────────────────────
+  console.log('  [Beatriz — dashboard + equipe + revisar + assinatura]');
+  const ctxB = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await login(ctxB, PERSONAS.chefe2);
+  const pageB = await ctxB.newPage();
+
+  await go(pageB, '/');
+  await shot(pageB, 'chefia/dashboard-aguardando.png');
+
+  // ── 10. Beatriz — /equipe com banner pendentes ────────────────────────────
+  await go(pageB, '/equipe');
+  await shot(pageB, 'chefia/equipe-banner-pendentes.png');
+
+  // ── 11. Beatriz — revisar PT do Pedro (status 2 AGUARDANDO_ASSINATURA_CHEFIA)
+  const ptsResp = await ctxB.request.post(`${BACKEND}/graphql`, {
+    data: { query: '{ listarPlanosTrabalho { id status } }' },
+  });
+  const allPts = (await ptsResp.json())?.data?.listarPlanosTrabalho ?? [];
+  const pedroPt = allPts.find((p: any) => p.status === 2);
+  if (pedroPt?.id) {
+    await go(pageB, `/equipe/planos-trabalho/${pedroPt.id}/revisar`);
+    await shot(pageB, 'chefia/revisar-pt.png');
+
+    // ── 12. AssinaturaCard com 3 checks marcados ────────────────────────────
+    // Procura os 3 checkboxes do card de assinatura. O componente usa `checked`
+    // controlado via onchange — clicamos no <label> que envelopa cada input
+    // (mais robusto que .check() porque o input é controlado).
+    const labels = pageB.locator('label.assinatura-check');
+    const labelCount = await labels.count();
+    if (labelCount >= 3) {
+      // Scroll até o card para garantir que aparece no viewport
+      await labels.first().scrollIntoViewIfNeeded();
+      await pageB.waitForTimeout(200);
+      for (let i = 0; i < 3; i++) {
+        await labels.nth(i).click();
+        await pageB.waitForTimeout(100);
+      }
+      await pageB.waitForTimeout(200);
+      await shot(pageB, 'chefia/assinatura-card.png');
+    } else {
+      console.log(`  ! AssinaturaCard com checks não encontrado (labels=${labelCount})`);
+    }
+  } else {
+    console.log('  ! nenhum PT com status=2 encontrado para Beatriz revisar');
+  }
+  await ctxB.close();
+}
+
 async function captureExtra(browser: ReturnType<typeof chromium.launch> extends Promise<infer B> ? B : never) {
   // ── Notificações — Ana Silva ──────────────────────────────────────────────
   console.log('\n[NOTIFICAÇÕES — Ana Silva]');
@@ -411,6 +614,7 @@ async function main() {
     await captureGestor(browser);
     await captureAdmin(browser);
     await captureDemo(browser);
+    await capturePactuacao(browser);
     await captureExtra(browser);
   } catch (err) {
     console.error('\nErro durante captura:', err);
