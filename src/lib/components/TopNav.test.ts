@@ -26,9 +26,21 @@ describe('TopNav', () => {
 		expect(screen.getByText('Carlos')).toBeInTheDocument();
 	});
 
-	it('link ativo (página atual = /) tem aria-current="page"', () => {
+	it('link Início aponta para /app', () => {
 		render(TopNav, { props: { user: servidor } });
 		const inicioLink = screen.getByRole('link', { name: 'Início' });
-		expect(inicioLink).toHaveAttribute('aria-current', 'page');
+		expect(inicioLink.getAttribute('href')).toBe('/app');
+	});
+
+	it('botão Sair está dentro do menu do usuário', () => {
+		render(TopNav, { props: { user: servidor } });
+		expect(screen.getByRole('button', { name: /sair/i })).toBeInTheDocument();
+	});
+
+	it('form de logout aponta para /api/logout via POST', () => {
+		const { container } = render(TopNav, { props: { user: servidor } });
+		const form = container.querySelector('form.logout-form');
+		expect(form?.getAttribute('action')).toBe('/api/logout');
+		expect(form?.getAttribute('method')?.toLowerCase()).toBe('post');
 	});
 });

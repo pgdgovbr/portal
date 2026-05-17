@@ -75,7 +75,7 @@ interface QueryResponse {
 
 export const load: PageServerLoad = async ({ params, cookies, parent }) => {
 	const { user } = await parent();
-	if (!user) redirect(302, '/');
+	if (!user) redirect(302, '/login');
 
 	const token = cookies.get('access_token');
 
