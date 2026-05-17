@@ -15,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BACKEND = 'http://localhost:8000';
 const FRONTEND = 'http://localhost:5173';
 const OUT = path.resolve(__dirname, '../docs/docs/assets/screenshots');
+const MOBILE_VIEWPORT = { width: 390, height: 844 } as const;
 
 // Seed personas (CLAUDE.md)
 const PERSONAS = {
@@ -600,6 +601,136 @@ async function captureExtra(browser: ReturnType<typeof chromium.launch> extends 
   await ctxP.close();
 }
 
+// ─── Mobile (Fase 14) ─────────────────────────────────────────────────────────
+
+async function captureMobile(browser: ReturnType<typeof chromium.launch> extends Promise<infer B> ? B : never) {
+  console.log('\n[MOBILE — iPhone 14 (390×844)]');
+
+  // ── 1. Marta — /meu-plano vazio ─────────────────────────────────────────
+  console.log('  [Marta — mobile vazio + wizard]');
+  const ctxM = await browser.newContext({ viewport: MOBILE_VIEWPORT });
+  await login(ctxM, PERSONAS.servidor7);
+  const pageM = await ctxM.newPage();
+
+  await go(pageM, '/meu-plano');
+  await shot(pageM, 'mobile/servidor/meu-plano-vazio.png');
+
+  // ── 2-3. Marta — wizard step 1 + step 4 (contribuições) ─────────────────
+  await go(pageM, '/meu-plano/criar');
+  await pageM.waitForTimeout(400);
+  await fillWizardStep0(pageM);  // helper existente — preenche datas
+  await shot(pageM, 'mobile/servidor/criar-passo1.png');
+
+  // Avançar 3 vezes até step 4 (contribuições)
+  for (let i = 0; i < 3; i++) {
+    await pageM.getByRole('button', { name: /próximo/i }).click();
+    await pageM.waitForTimeout(250);
+  }
+  await addContribServidor(pageM, 'Apoio em projetos transversais da CGPGD', 60);
+  await addContribServidor(pageM, 'Documentação e reuniões de equipe', 40);
+  await shot(pageM, 'mobile/servidor/criar-contribuicoes.png');
+
+  await ctxM.close();
+
+  // ── 4. Lucas — editar rascunho (sticky CTA no rodapé) ────────────────────
+  console.log('  [Lucas — mobile editar]');
+  const ctxL = await browser.newContext({ viewport: MOBILE_VIEWPORT });
+  await login(ctxL, PERSONAS.servidor4);
+  const pageL = await ctxL.newPage();
+
+  const lucasResp = await ctxL.request.post(`${BACKEND}/graphql`, {
+    data: { query: '{ meusPlanosTrabalho { id status } }' },
+  });
+  const lucasPts = (await lucasResp.json())?.data?.meusPlanosTrabalho ?? [];
+  const lucasPt = lucasPts.find((p: any) => p.status === 5) ?? lucasPts[0];
+  if (lucasPt?.id) {
+    await go(pageL, `/meu-plano/${lucasPt.id}/editar`);
+    // Scroll até o final para garantir que CTA sticky aparece no viewport
+    await pageL.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await pageL.waitForTimeout(300);
+    await shot(pageL, 'mobile/servidor/editar.png');
+  } else {
+    console.log('  ! Lucas sem PT rascunho — pulando mobile/servidor/editar.png');
+  }
+  await ctxL.close();
+
+  // ── 5-6. Felipe — dashboard + revisar (sticky AssinaturaCard) ────────────
+  console.log('  [Felipe — mobile dashboard + revisar]');
+  const ctxF = await browser.newContext({ viewport: MOBILE_VIEWPORT });
+  await login(ctxF, PERSONAS.servidor6);
+  const pageF = await ctxF.newPage();
+
+  await go(pageF, '/');
+  await shot(pageF, 'mobile/servidor/dashboard-aguardando.png');
+
+  const felipeResp = await ctxF.request.post(`${BACKEND}/graphql`, {
+    data: { query: '{ meusPlanosTrabalho { id status } }' },
+  });
+  const felipePts = (await felipeResp.json())?.data?.meusPlanosTrabalho ?? [];
+  const felipePt = felipePts.find((p: any) => p.status === 7) ?? felipePts[0];
+  if (felipePt?.id) {
+    await go(pageF, `/meu-plano/${felipePt.id}/revisar`);
+    await pageF.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await pageF.waitForTimeout(300);
+    await shot(pageF, 'mobile/servidor/revisar.png');
+  } else {
+    console.log('  ! Felipe sem PT em aguardando — pulando mobile/servidor/revisar.png');
+  }
+  await ctxF.close();
+
+  // ── 7-9. Beatriz — dashboard + equipe + revisar PT do Pedro ─────────────
+  console.log('  [Beatriz — mobile dashboard + equipe + revisar]');
+  const ctxB = await browser.newContext({ viewport: MOBILE_VIEWPORT });
+  await login(ctxB, PERSONAS.chefe2);
+  const pageB = await ctxB.newPage();
+
+  await go(pageB, '/');
+  await shot(pageB, 'mobile/chefia/dashboard-aguardando.png');
+
+  await go(pageB, '/equipe');
+  await shot(pageB, 'mobile/chefia/equipe.png');
+
+  const ptsResp = await ctxB.request.post(`${BACKEND}/graphql`, {
+    data: { query: '{ listarPlanosTrabalho { id status } }' },
+  });
+  const allPts = (await ptsResp.json())?.data?.listarPlanosTrabalho ?? [];
+  const pedroPt = allPts.find((p: any) => p.status === 2);
+  if (pedroPt?.id) {
+    await go(pageB, `/equipe/planos-trabalho/${pedroPt.id}/revisar`);
+    await pageB.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await pageB.waitForTimeout(300);
+    await shot(pageB, 'mobile/chefia/revisar.png');
+  } else {
+    console.log('  ! nenhum PT com status=2 — pulando mobile/chefia/revisar.png');
+  }
+  await ctxB.close();
+
+  // ── 10. Ana — CloneDialog em mobile ─────────────────────────────────────
+  console.log('  [Ana — mobile clonar modal]');
+  const ctxA = await browser.newContext({ viewport: MOBILE_VIEWPORT });
+  await login(ctxA, PERSONAS.servidor1);
+  const pageA = await ctxA.newPage();
+  await go(pageA, '/meu-plano');
+  await pageA.waitForTimeout(400);
+  const btnCtaClone = pageA.getByRole('button', { name: /clonar plano anterior/i });
+  const hasCta = await btnCtaClone.isVisible({ timeout: 2000 }).catch(() => false);
+  if (hasCta) {
+    await btnCtaClone.click();
+  } else {
+    const btnAsideClone = pageA.locator('button[title="Clonar"]').first();
+    const hasAside = await btnAsideClone.isVisible({ timeout: 2000 }).catch(() => false);
+    if (hasAside) await btnAsideClone.click();
+  }
+  await pageA.waitForTimeout(400);
+  const tituloModal = pageA.getByText(/Clonar plano de trabalho/i).first();
+  if (await tituloModal.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await shot(pageA, 'mobile/servidor/clonar-modal.png');
+  } else {
+    console.log('  ! modal de clone não abriu em mobile');
+  }
+  await ctxA.close();
+}
+
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -615,6 +746,7 @@ async function main() {
     await captureAdmin(browser);
     await captureDemo(browser);
     await capturePactuacao(browser);
+    await captureMobile(browser);
     await captureExtra(browser);
   } catch (err) {
     console.error('\nErro durante captura:', err);
