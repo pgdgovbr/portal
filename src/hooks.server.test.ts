@@ -32,9 +32,51 @@ describe('hooks.server — handle', () => {
 		resolve.mockClear();
 	});
 
-	it('sem access_token e path / → redireciona para /auth/login/google', async () => {
+	it('sem access_token e path / → renderiza landing pública (sem redirect)', async () => {
 		const event = makeEvent('/', undefined);
-		await expect(handle({ event, resolve })).rejects.toMatchObject({ status: 302 });
+		const result = await handle({ event, resolve });
+		expect(resolve).toHaveBeenCalledWith(event);
+		expect(result).toBeDefined();
+	});
+
+	it('sem access_token e path /login → renderiza login (sem redirect)', async () => {
+		const event = makeEvent('/login', undefined);
+		const result = await handle({ event, resolve });
+		expect(resolve).toHaveBeenCalledWith(event);
+		expect(result).toBeDefined();
+	});
+
+	it('sem access_token e path /api/demo-login → permite (sem redirect)', async () => {
+		const event = makeEvent('/api/demo-login?email=foo@x.gov.br', undefined);
+		const result = await handle({ event, resolve });
+		expect(resolve).toHaveBeenCalledWith(event);
+		expect(result).toBeDefined();
+	});
+
+	it('sem access_token e path /meu-plano → redireciona para /login com ?next=', async () => {
+		const event = makeEvent('/meu-plano', undefined);
+		let thrown: unknown;
+		try {
+			await handle({ event, resolve });
+		} catch (e) {
+			thrown = e;
+		}
+		expect(thrown).toMatchObject({ status: 302 });
+		expect((thrown as { location: string }).location).toContain('/login');
+		expect((thrown as { location: string }).location).toContain(encodeURIComponent('/meu-plano'));
+		expect(resolve).not.toHaveBeenCalled();
+	});
+
+	it('sem access_token e path /app → redireciona para /login com ?next=/app', async () => {
+		const event = makeEvent('/app', undefined);
+		let thrown: unknown;
+		try {
+			await handle({ event, resolve });
+		} catch (e) {
+			thrown = e;
+		}
+		expect(thrown).toMatchObject({ status: 302 });
+		expect((thrown as { location: string }).location).toContain('/login');
 		expect(resolve).not.toHaveBeenCalled();
 	});
 
@@ -46,15 +88,22 @@ describe('hooks.server — handle', () => {
 	});
 
 	it('com access_token → chama resolve (sem redirect)', async () => {
-		const event = makeEvent('/', 'valid-token-abc');
+		const event = makeEvent('/app', 'valid-token-abc');
 		const result = await handle({ event, resolve });
 		expect(resolve).toHaveBeenCalledWith(event);
 		expect(result).toBeDefined();
 	});
 
-	it('?token na URL → seta cookie e redireciona para /', async () => {
+	it('?token na URL → seta cookie e redireciona para /app', async () => {
 		const event = makeEvent('/?token=jwt-from-backend');
-		await expect(handle({ event, resolve })).rejects.toMatchObject({ status: 302 });
+		let thrown: unknown;
+		try {
+			await handle({ event, resolve });
+		} catch (e) {
+			thrown = e;
+		}
+		expect(thrown).toMatchObject({ status: 302 });
+		expect((thrown as { location: string }).location).toBe('/app');
 		expect((event.cookies as unknown as ReturnType<typeof makeCookies>).set).toHaveBeenCalledWith(
 			'access_token',
 			'jwt-from-backend',

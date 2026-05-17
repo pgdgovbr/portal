@@ -1,0 +1,271 @@
+/* landing-tokens.css — extensão dos tokens pra landing (mais editorial).
+   Importa em cima de tokens.css. */
+
+:root {
+  /* Cores adicionais (reposicionando ocre como acento editorial, não warning) */
+  --c-accent:        #C77400;        /* ocre — acento editorial / destaque humano */
+  --c-accent-soft:   #FCF1DC;
+  --c-accent-deep:   #8A4D00;
+
+  /* Verde institucional secundário para hover do logo (verde-bandeira mais sóbrio) */
+  --c-mark-dot:      #1FA336;
+
+  /* Cores neutras editoriais (mais quentes pra landing) */
+  --c-paper:         #FCFBF8;        /* fundo principal editorial — quase off-white */
+  --c-paper-2:       #F4F2EC;        /* contraste sutil */
+  --c-ink-editorial: #0B1426;        /* preto mais profundo pra headings */
+
+  /* Tipografia editorial */
+  --fz-display-xl:   76px;
+  --fz-display-lg:   56px;
+  --fz-display-md:   40px;
+  --fz-display-sm:   30px;
+  --fz-lede:         20px;            /* parágrafo destaque */
+  --fz-body-lg:      17px;
+
+  /* Larguras editoriais */
+  --w-prose:         640px;           /* texto corrido legível */
+  --w-content:       1200px;          /* container principal */
+  --w-wide:          1360px;
+}
+
+/* ───── Landing-only utility classes (não conflitam com app) ───── */
+
+.lp { 
+  background: var(--c-paper); 
+  color: var(--c-ink-editorial); 
+  font-family: var(--ff-body); 
+  font-size: var(--fz-body-lg); 
+  line-height: 1.55; 
+  -webkit-font-smoothing: antialiased;
+}
+.lp * { box-sizing: border-box; }
+
+.lp-wrap { 
+  max-width: var(--w-content); 
+  margin: 0 auto; 
+  padding: 0 32px; 
+}
+.lp-wrap-wide { 
+  max-width: var(--w-wide); 
+  margin: 0 auto; 
+  padding: 0 32px; 
+}
+
+.lp h1, .lp h2, .lp h3 { 
+  font-family: var(--ff-display); 
+  color: var(--c-ink-editorial); 
+  letter-spacing: -0.02em; 
+  margin: 0; 
+  text-wrap: pretty;
+}
+.lp p { margin: 0; text-wrap: pretty; }
+
+.lp-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px; font-weight: 700;
+  color: var(--c-muted);
+}
+.lp-eyebrow .acc { color: var(--c-accent); }
+.lp-eyebrow .dot { width: 6px; height: 6px; border-radius: 3px; background: var(--c-accent); }
+
+.lp-h1 { 
+  font-size: var(--fz-display-xl); 
+  font-weight: 800; 
+  line-height: 1.02; 
+  letter-spacing: -0.035em; 
+}
+.lp-h2 { 
+  font-size: var(--fz-display-md); 
+  font-weight: 700; 
+  line-height: 1.1; 
+  letter-spacing: -0.02em;
+}
+.lp-h3 { 
+  font-size: var(--fz-display-sm); 
+  font-weight: 700; 
+  line-height: 1.15; 
+}
+.lp-lede { 
+  font-size: var(--fz-lede); 
+  line-height: 1.5; 
+  color: var(--c-ink-2); 
+  max-width: var(--w-prose);
+}
+
+.lp-section {
+  padding: 88px 0;
+  position: relative;
+}
+.lp-section.tight { padding: 64px 0; }
+.lp-section.cream { background: var(--c-paper-2); }
+.lp-section.dark {
+  background: var(--c-ink-editorial);
+  color: rgba(255,255,255,0.92);
+}
+.lp-section.dark h1, .lp-section.dark h2, .lp-section.dark h3 { color: white; }
+.lp-section.dark .lp-eyebrow { color: rgba(255,255,255,0.62); }
+.lp-section.dark .lp-eyebrow .acc { color: #F5A623; }
+.lp-section.dark .lp-lede { color: rgba(255,255,255,0.74); }
+
+/* Botões editoriais (sobrescrevem padding dos do app) */
+.lp-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 14px 22px;
+  font-size: 15px; font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer; transition: all .15s ease;
+  text-decoration: none;
+  white-space: nowrap;
+  font-family: var(--ff-body);
+}
+.lp-btn-primary { 
+  background: var(--c-ink-editorial); 
+  color: white; 
+}
+.lp-btn-primary:hover { 
+  background: var(--c-primary); 
+  transform: translateY(-1px);
+}
+.lp-btn-outline { 
+  background: transparent; 
+  color: var(--c-ink-editorial); 
+  border-color: rgba(11, 20, 38, 0.18);
+}
+.lp-btn-outline:hover { 
+  background: rgba(11, 20, 38, 0.04); 
+  border-color: var(--c-ink-editorial);
+}
+.lp-btn-govbr {
+  background: var(--c-primary);
+  color: white;
+}
+.lp-btn-govbr:hover { 
+  background: var(--c-primary-hover); 
+}
+.lp-btn-lg { padding: 16px 28px; font-size: 16px; }
+.lp-btn-sm { padding: 8px 14px; font-size: 13px; }
+
+/* Chip / badge editorial */
+.lp-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(11, 20, 38, 0.05);
+  color: var(--c-ink-2);
+  border: 1px solid rgba(11, 20, 38, 0.08);
+}
+.lp-chip.accent {
+  background: var(--c-accent-soft);
+  color: var(--c-accent-deep);
+  border-color: rgba(199, 116, 0, 0.25);
+}
+.lp-chip.success {
+  background: var(--c-success-soft);
+  color: var(--c-success);
+  border-color: rgba(22, 136, 33, 0.18);
+}
+.lp-chip.legal {
+  background: white;
+  color: var(--c-primary);
+  border: 1px solid rgba(15, 61, 140, 0.15);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Browser chrome estilizado pra screenshot */
+.lp-browser {
+  border-radius: 14px;
+  overflow: hidden;
+  background: white;
+  box-shadow:
+    0 30px 60px -25px rgba(11, 20, 38, 0.30),
+    0 12px 30px -15px rgba(11, 20, 38, 0.20),
+    0 0 0 1px rgba(11, 20, 38, 0.08);
+}
+.lp-browser-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px;
+  background: #F4F2EC;
+  border-bottom: 1px solid #E7E3DB;
+}
+.lp-browser-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+}
+.lp-browser-url {
+  margin-left: 14px;
+  flex: 1;
+  padding: 5px 12px;
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--ff-mono);
+  color: var(--c-muted);
+  border: 1px solid rgba(11, 20, 38, 0.06);
+  display: flex; align-items: center; gap: 6px;
+  max-width: 480px;
+}
+.lp-browser-body { background: white; }
+.lp-browser-body img { display: block; width: 100%; height: auto; }
+
+/* Logo */
+.lp-mark {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--ff-display);
+  font-weight: 800;
+  text-decoration: none;
+  color: inherit;
+}
+.lp-mark-glyph {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: var(--c-ink-editorial);
+  color: white;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  position: relative;
+  letter-spacing: -0.02em;
+}
+.lp-mark-glyph::after {
+  content: "";
+  position: absolute;
+  right: -3px; bottom: -3px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--c-mark-dot);
+  box-shadow: 0 0 0 2px var(--c-paper);
+}
+.lp-mark.on-dark .lp-mark-glyph { background: white; color: var(--c-ink-editorial); }
+.lp-mark.on-dark .lp-mark-glyph::after { box-shadow: 0 0 0 2px var(--c-ink-editorial); }
+.lp-mark-wordmark { font-size: 17px; letter-spacing: -0.015em; }
+
+/* Quadradinho c/ stat */
+.lp-stat-num {
+  font-family: var(--ff-display);
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--c-ink-editorial);
+}
+.lp-stat-label {
+  font-size: 13px;
+  color: var(--c-muted);
+  margin-top: 12px;
+  line-height: 1.45;
+}
+
+/* Linha divisória sutil tema editorial */
+.lp-rule {
+  height: 1px;
+  background: rgba(11, 20, 38, 0.08);
+  margin: 0;
+  border: 0;
+}

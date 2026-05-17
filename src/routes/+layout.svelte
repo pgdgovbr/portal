@@ -10,13 +10,19 @@
 	$effect(() => {
 		if (data.user) userStore.set(data.user);
 	});
+
+	// Rotas com TopNav próprio (landing + login). Em /, /login e seus filhos
+	// não renderizamos o TopNav autenticado mesmo quando logado.
+	const publicPaths = $derived(
+		$page.url.pathname === '/' || $page.url.pathname.startsWith('/login')
+	);
 </script>
 
 <svelte:head>
-	<title>PGD Libre</title>
+	<title>PGD Livre</title>
 </svelte:head>
 
-{#if data.user}
+{#if data.user && !publicPaths}
 	<TopNav user={data.user} />
 {/if}
 

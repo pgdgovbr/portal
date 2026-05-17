@@ -41,7 +41,7 @@ describe('+layout.server — load', () => {
 		expect(result).toEqual({ user: mockUser });
 	});
 
-	it('com token mas GraphQL retorna 500 → lança redirect 302', async () => {
+	it('com token mas GraphQL retorna 500 → retorna user null (não redireciona)', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () =>
@@ -51,10 +51,11 @@ describe('+layout.server — load', () => {
 			)
 		);
 
-		await expect(load(makeLoadEvent('valid-token'))).rejects.toMatchObject({ status: 302 });
+		const result = await load(makeLoadEvent('valid-token'));
+		expect(result).toEqual({ user: null });
 	});
 
-	it('com token mas GraphQL retorna { errors: [...] } → lança redirect 302', async () => {
+	it('com token mas GraphQL retorna { errors: [...] } → retorna user null', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () =>
@@ -68,6 +69,7 @@ describe('+layout.server — load', () => {
 			)
 		);
 
-		await expect(load(makeLoadEvent('valid-token'))).rejects.toMatchObject({ status: 302 });
+		const result = await load(makeLoadEvent('valid-token'));
+		expect(result).toEqual({ user: null });
 	});
 });

@@ -1,8 +1,25 @@
 import { redirect } from '@sveltejs/kit';
-import { env } from '$env/dynamic/public';
 import type { Handle } from '@sveltejs/kit';
 
-const BACKEND_URL = env.PUBLIC_BACKEND_URL ?? 'https://pgd-libre-klvx64dufq-rj.a.run.app';
+/**
+ * Rotas públicas — não exigem autenticação:
+ *   /            → landing pública (institucional)
+ *   /login       → escolha de persona demo ou redirect Gov.br
+ *   /api/demo-login → endpoint server que chama backend dev-login
+ *   /auth/*      → callbacks OAuth do backend (sempre liberado)
+ *
+ * Qualquer outra rota sem cookie `access_token` redireciona para
+ * `/login?next=<path>` — preserva intenção pra retornar após login.
+ */
+const PUBLIC_PATHS = new Set(['/', '/login']);
+
+function isPublicPath(path: string): boolean {
+	if (PUBLIC_PATHS.has(path)) return true;
+	if (path.startsWith('/auth/') || path === '/auth') return true;
+	if (path.startsWith('/api/demo-login')) return true;
+	if (path.startsWith('/api/logout')) return true;
+	return false;
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
 	// OAuth callback: backend passa o JWT como ?token= porque cookies cross-domain
@@ -16,14 +33,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 			sameSite: 'lax',
 			maxAge: 60 * 60 * 8,
 		});
-		redirect(302, '/');
+		redirect(302, '/app');
 	}
 
 	const token = event.cookies.get('access_token');
 	const path = event.url.pathname;
 
-	if (!token && !path.startsWith('/auth')) {
-		redirect(302, `${BACKEND_URL}/auth/login/google`);
+	if (!token && !isPublicPath(path)) {
+		redirect(302, `/login?next=${encodeURIComponent(path)}`);
 	}
 
 	return resolve(event);
