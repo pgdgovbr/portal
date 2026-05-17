@@ -312,18 +312,20 @@
 			<div class="card-hd">
 				<div>
 					<h2>
-						{step === 0 && 'Período do plano'}
-						{step === 1 && 'Modalidade e carga horária'}
-						{step === 2 && 'Como você quer ser avaliado(a)?'}
-						{step === 3 && 'Suas contribuições'}
-						{step === 4 && 'Revisão final'}
+						{#if step === 0}Período do plano
+						{:else if step === 1}Modalidade e carga horária
+						{:else if step === 2}Como você quer ser avaliado(a)?
+						{:else if step === 3}Suas contribuições
+						{:else if step === 4}Revisão final
+						{/if}
 					</h2>
 					<p>
-						{step === 0 && 'Defina o intervalo de vigência. Máximo de 1 ano.'}
-						{step === 1 && 'Escolha modalidade e horas semanais disponíveis.'}
-						{step === 2 && 'Liste critérios objetivos que orientarão as notas mensais.'}
-						{step === 3 && 'Some 100% da sua carga em atividades concretas.'}
-						{step === 4 && 'Confira tudo antes de enviar à chefia ou salvar como rascunho.'}
+						{#if step === 0}Defina o intervalo de vigência. Máximo de 1 ano.
+						{:else if step === 1}Escolha modalidade e horas semanais disponíveis.
+						{:else if step === 2}Liste critérios objetivos que orientarão as notas mensais.
+						{:else if step === 3}Some 100% da sua carga em atividades concretas.
+						{:else if step === 4}Confira tudo antes de enviar à chefia ou salvar como rascunho.
+						{/if}
 					</p>
 				</div>
 			</div>

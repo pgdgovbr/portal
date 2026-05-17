@@ -296,18 +296,20 @@
 			<div class="card-hd">
 				<div>
 					<h2>
-						{step === 0 && 'Para quem é este plano?'}
-						{step === 1 && 'Carga horária disponível para o plano'}
-						{step === 2 && 'Como o servidor será avaliado?'}
-						{step === 3 && 'Contribuições adicionadas'}
-						{step === 4 && 'Revisão do plano'}
+						{#if step === 0}Para quem é este plano?
+						{:else if step === 1}Carga horária disponível para o plano
+						{:else if step === 2}Como o servidor será avaliado?
+						{:else if step === 3}Contribuições adicionadas
+						{:else if step === 4}Revisão do plano
+						{/if}
 					</h2>
 					<p>
-						{step === 0 && 'Selecione um servidor com TCR ativo sem plano em execução.'}
-						{step === 1 && 'Informe a carga semanal e ocorrências previsíveis.'}
-						{step === 2 && 'Defina critérios objetivos que orientam as notas mensais.'}
-						{step === 3 && 'Soma deve ser exatamente 100% para avançar.'}
-						{step === 4 && 'Confira cada etapa antes de enviar para aprovação.'}
+						{#if step === 0}Selecione um servidor com TCR ativo sem plano em execução.
+						{:else if step === 1}Informe a carga semanal e ocorrências previsíveis.
+						{:else if step === 2}Defina critérios objetivos que orientam as notas mensais.
+						{:else if step === 3}Soma deve ser exatamente 100% para avançar.
+						{:else if step === 4}Confira cada etapa antes de enviar para aprovação.
+						{/if}
 					</p>
 				</div>
 				{#if step === 3}
