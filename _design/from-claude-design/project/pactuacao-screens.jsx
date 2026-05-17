@@ -6,25 +6,25 @@
 // - EquipeListaComBadges (mudança em /equipe)
 // - PlanoTrabalhoChefiaRevisar (chefia recebendo PT do servidor)
 
-const USR_SRV = { name: "Ana Beatriz Costa", role: "Servidora · Analista", initials: "AC" };
+const USR_SRV = { name: "Nitai Bezerra", role: "Servidor · Analista", initials: "NB" };
 const USR_CHF = { name: "Carlos Mendes",     role: "Chefia · CGTIC",       initials: "CM" };
 
 // Dados de uma "edição timeline" típica
 const TIMELINE_EXEMPLO = [
-  { tipo: "criou",    papel: "servidor", autor: "Ana Beatriz",  quando: "10 mai · 09:14",
+  { tipo: "criou",    papel: "servidor", autor: "Nitai",  quando: "10 mai · 09:14",
     descricao: "(clonou do plano PT-2025-08-001)" },
-  { tipo: "editou",   papel: "servidor", autor: "Ana Beatriz",  quando: "10 mai · 10:22",
+  { tipo: "editou",   papel: "servidor", autor: "Nitai",  quando: "10 mai · 10:22",
     diff: [
       { campo: "Carga horária semanal", de: "40 horas", para: "30 horas" },
       { campo: "Contribuição 1 · percentual", de: "30%", para: "35%" },
     ] },
-  { tipo: "editou",   papel: "servidor", autor: "Ana Beatriz",  quando: "11 mai · 14:08",
+  { tipo: "editou",   papel: "servidor", autor: "Nitai",  quando: "11 mai · 14:08",
     diff: [
       { campo: "Critério 4", de: "Comunicação institucional", para: "Comunicação efetiva com áreas envolvidas" },
     ] },
-  { tipo: "assinou",  papel: "servidor", autor: "Ana Beatriz",  quando: "12 mai · 16:30",
-    descricao: "como servidora" },
-  { tipo: "enviou",   papel: "servidor", autor: "Ana Beatriz",  quando: "12 mai · 16:30",
+  { tipo: "assinou",  papel: "servidor", autor: "Nitai",  quando: "12 mai · 16:30",
+    descricao: "como servidor" },
+  { tipo: "enviou",   papel: "servidor", autor: "Nitai",  quando: "12 mai · 16:30",
     descricao: "para Carlos Mendes (chefia)" },
 ];
 
@@ -605,7 +605,7 @@ const ScreenMeuPlanoRevisar = ({ density }) => {
 // ═══════════════════════════════════════════════════════════════════════
 const ScreenEquipeComBadges = ({ density }) => {
   const equipe = [
-    { nome: "Ana Beatriz Costa",  siape: "1928374", status: "AGUARDANDO_ASSINATURA_CHEFIA", urg: 2, mod: 3, prog: 0,  acao: "assinar" },
+    { nome: "Nitai Bezerra",  siape: "1928374", status: "AGUARDANDO_ASSINATURA_CHEFIA", urg: 2, mod: 3, prog: 0,  acao: "assinar" },
     { nome: "Lucas Pereira",      siape: "2840193", status: "EM_EXECUCAO",                   urg: null, mod: 2, prog: 48, acao: "ver" },
     { nome: "Renata Santos",      siape: "1734829", status: "RASCUNHO_PARTICIPANTE",         urg: null, mod: 3, prog: 0,  acao: "aguardar" },
     { nome: "Juliana Almeida",    siape: "1638204", status: "EM_EXECUCAO",                   urg: null, mod: 2, prog: 45, acao: "ver" },
@@ -691,7 +691,7 @@ const ScreenEquipeComBadges = ({ density }) => {
 // /equipe/planos-trabalho/[id] — chefia revisando PT recebido do servidor
 // ═══════════════════════════════════════════════════════════════════════
 const ScreenChefiaRevisar = ({ density }) => {
-  const SERV = { nome: "Ana Beatriz Costa", siape: "1928374" };
+  const SERV = { nome: "Nitai Bezerra", siape: "1928374" };
 
   return (
     <div className="pgd-app" data-density={density} data-screen-label="Chefia · revisar plano do servidor">
@@ -718,7 +718,7 @@ const ScreenChefiaRevisar = ({ density }) => {
 
         <OwnershipBanner
           variant="comigo-revisor"
-          atorOutro={`${SERV.nome.split(" ")[0]} (servidora)`}
+          atorOutro={`${SERV.nome.split(" ")[0]} (servidor)`}
           diasEspera={2}
           mostrarDiff
         />

@@ -5,12 +5,12 @@
 const ScreenDashboardServidor = ({ density }) => {
   return (
     <div className="pgd-app" data-density={density} data-screen-label="Dashboard · Servidor">
-      <TopNav role="servidor" active="home" alerts={3} user={{ name: "Ana Beatriz Costa", role: "Servidora · Analista", initials: "AC" }} />
+      <TopNav role="servidor" active="home" alerts={3} user={{ name: "Nitai Bezerra", role: "Servidor · Analista", initials: "NB" }} />
       <div className="pg">
         <div className="pg-head">
           <div>
             <div className="pg-eyebrow">Início</div>
-            <h1 className="pg-title">Olá, Ana</h1>
+            <h1 className="pg-title">Olá, Nitai</h1>
             <p className="pg-sub">Você tem 1 registro de execução pendente e 1 avaliação recebida.</p>
           </div>
           <div style={{ textAlign: "right", color: "var(--c-muted)", fontSize: 13.5 }}>
@@ -263,7 +263,7 @@ const ScreenMeuPlano = ({ density, histView }) => {
 
   return (
     <div className="pgd-app" data-density={density} data-screen-label="Meu Plano de Trabalho">
-      <TopNav role="servidor" active="plano" alerts={3} user={{ name: "Ana Beatriz Costa", role: "Servidora · Analista", initials: "AC" }} />
+      <TopNav role="servidor" active="plano" alerts={3} user={{ name: "Nitai Bezerra", role: "Servidor · Analista", initials: "NB" }} />
       <div className="pg">
         <div className="crumb">
           <a href="#">Início</a><span className="sep">/</span><span>Meu Plano de Trabalho</span>
@@ -394,10 +394,28 @@ const ScreenMeuPlano = ({ density, histView }) => {
 };
 
 // ── Screen 3: Registrar Execução (Wizard) ──────────────────────────────
-const ScreenRegistrar = ({ density }) => {
+const REGISTRO_ORIGINAL = `• Finalizei a migração de 3 tabelas críticas do SIAPE para o PostgreSQL 16, incluindo
+  servidores_pgd, planos_trabalho_legado e registros_envio. Total de 1,2M de linhas migradas
+  com 0 erros, validação por checksum aprovada.
+
+• Conduzi 2 sessões de mentoria com novos servidores da CGTIC sobre infraestrutura
+  como código (Terraform), totalizando 4h de capacitação.
+
+• Iniciei revisão de 4 endpoints da integração Gov.br ID — 2 já documentados e
+  publicados no portal de APIs internas. Os outros 2 dependem do aval da CGRH para
+  fechar contrato de SLA.
+
+• Apoiei a CGRH em 1 reunião técnica sobre adesão ao SSO unificado (16/abr).`;
+
+// aiInitialState pode ser "closed" (default), "editing" ou "previewing"
+const ScreenRegistrar = ({ density, aiInitialState = "closed" }) => {
+  const [aiOpen, setAiOpen]   = React.useState(aiInitialState !== "closed");
+  const [aiStage, setAiStage] = React.useState(aiInitialState === "previewing" ? "previewing" : "editing");
+  const [texto, setTexto]     = React.useState(REGISTRO_ORIGINAL);
+
   return (
     <div className="pgd-app" data-density={density} data-screen-label="Registrar Execução · wizard">
-      <TopNav role="servidor" active="plano" alerts={3} user={{ name: "Ana Beatriz Costa", role: "Servidora · Analista", initials: "AC" }} />
+      <TopNav role="servidor" active="plano" alerts={3} user={{ name: "Nitai Bezerra", role: "Servidor · Analista", initials: "NB" }} />
       <div className="pg" style={{ maxWidth: 1080 }}>
         <div className="crumb">
           <a href="#">Início</a><span className="sep">/</span>
@@ -445,30 +463,49 @@ const ScreenRegistrar = ({ density }) => {
               </div>
 
               <div className="field">
-                <label htmlFor="exec">Descrição dos trabalhos executados</label>
+                <label htmlFor="exec" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>Descrição dos trabalhos executados</span>
+                  {!aiOpen && (
+                    <button
+                      type="button"
+                      onClick={() => { setAiOpen(true); setAiStage("editing"); }}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        background: "linear-gradient(90deg, var(--c-status-aval) 0%, #7B3FB8 100%)",
+                        color: "white", border: 0,
+                        padding: "6px 12px", borderRadius: 999,
+                        fontSize: 12, fontWeight: 600, cursor: "pointer",
+                        fontFamily: "inherit",
+                        boxShadow: "0 2px 6px rgba(92, 45, 145, .25)",
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
+                      </svg>
+                      Reescrever com IA
+                    </button>
+                  )}
+                </label>
                 <textarea
                   id="exec"
                   className="textarea"
-                  defaultValue={
-`• Finalizei a migração de 3 tabelas críticas do SIAPE para o PostgreSQL 16, incluindo
-  servidores_pgd, planos_trabalho_legado e registros_envio. Total de 1,2M de linhas migradas
-  com 0 erros, validação por checksum aprovada.
-
-• Conduzi 2 sessões de mentoria com novos servidores da CGTIC sobre infraestrutura
-  como código (Terraform), totalizando 4h de capacitação.
-
-• Iniciei revisão de 4 endpoints da integração Gov.br ID — 2 já documentados e
-  publicados no portal de APIs internas. Os outros 2 dependem do aval da CGRH para
-  fechar contrato de SLA.
-
-• Apoiei a CGRH em 1 reunião técnica sobre adesão ao SSO unificado (16/abr).`
-                  }
-                  style={{ minHeight: 280 }}
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  style={{ minHeight: aiOpen ? 180 : 280 }}
                 />
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--c-muted)" }}>
                   <span className="help">Vincule, quando possível, às contribuições do seu plano. Mín. 50 caracteres.</span>
-                  <span style={{ fontFamily: "var(--ff-display)", fontWeight: 600 }}>614 / 2000</span>
+                  <span style={{ fontFamily: "var(--ff-display)", fontWeight: 600 }}>{texto.length} / 2000</span>
                 </div>
+
+                {aiOpen && (
+                  <AIRewritePanel
+                    initialState={aiStage}
+                    originalText={texto}
+                    onCancel={() => setAiOpen(false)}
+                    onApply={(novoTexto) => { setTexto(novoTexto); setAiOpen(false); }}
+                  />
+                )}
               </div>
 
               <div style={{ background: "var(--c-info-soft)", padding: "14px 16px", borderRadius: "var(--r-md)", display: "flex", gap: 12 }}>
@@ -534,7 +571,7 @@ const ScreenRegistrar = ({ density }) => {
 const ScreenContestar = ({ density }) => {
   return (
     <div className="pgd-app" data-density={density} data-screen-label="Contestar Avaliação">
-      <TopNav role="servidor" active="plano" alerts={3} user={{ name: "Ana Beatriz Costa", role: "Servidora · Analista", initials: "AC" }} />
+      <TopNav role="servidor" active="plano" alerts={3} user={{ name: "Nitai Bezerra", role: "Servidor · Analista", initials: "NB" }} />
       <div className="pg" style={{ maxWidth: 1080 }}>
         <div className="crumb">
           <a href="#">Início</a><span className="sep">/</span>

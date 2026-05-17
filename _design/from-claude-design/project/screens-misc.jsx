@@ -9,7 +9,7 @@ const ScreenDetalheAvaliacao = ({ density }) => {
   const NOTA = 2;
   return (
     <div className="pgd-app" data-density={density} data-screen-label="Detalhe Avaliação · Servidor">
-      <TopNav role="servidor" active="plano" alerts={3} user={{ name: "Ana Beatriz Costa", role: "Servidora · Analista", initials: "AC" }} />
+      <TopNav role="servidor" active="plano" alerts={3} user={{ name: "Nitai Bezerra", role: "Servidor · Analista", initials: "NB" }} />
       <div className="pg" style={{ maxWidth: 1080 }}>
         <div className="crumb">
           <a href="#">Início</a><span className="sep">/</span>

@@ -5,7 +5,7 @@ const CHEFE = { name: "Carlos Mendes", role: "Chefia · CGTIC", initials: "CM" }
 
 // Mock de equipe (12 servidores)
 const EQUIPE = [
-  { nome: "Ana Beatriz Costa",  siape: "1928374", mod: 3, status: "execucao", reg: { texto: "Pendente · abr/2026", urg: 6 }, aval: { texto: "—", urg: null }, contrib: 4, prog: 42 },
+  { nome: "Nitai Bezerra",  siape: "1928374", mod: 3, status: "execucao", reg: { texto: "Pendente · abr/2026", urg: 6 }, aval: { texto: "—", urg: null }, contrib: 4, prog: 42 },
   { nome: "Lucas Pereira",      siape: "2840193", mod: 2, status: "execucao", reg: { texto: "07 mai", urg: 13 }, aval: { texto: "Avaliar abr/2026", urg: 2 }, contrib: 3, prog: 48 },
   { nome: "Renata Santos",      siape: "1734829", mod: 3, status: "execucao", reg: { texto: "06 mai", urg: 12 }, aval: { texto: "Avaliar abr/2026", urg: 1 }, contrib: 5, prog: 51 },
   { nome: "Juliana Almeida",    siape: "1638204", mod: 2, status: "execucao", reg: { texto: "09 mai", urg: 15 }, aval: { texto: "Avaliar abr/2026", urg: 4 }, contrib: 4, prog: 45 },
