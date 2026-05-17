@@ -1,5 +1,11 @@
 # Plano — Landing Page institucional + Login simplificado (v2)
 
+## Status
+
+**6/7 PRs mergeadas e em produção** (PRs #10, #11, #15, #16, #17, #18).
+
+A landing está **funcional mas incompleta**: a PR #15 entregou só 3 dos 10 blocos do handoff v2 (Hero, StatBar, Atendimento à norma) + Footer. **Falta a PR-7 com os 6 blocos restantes**, detalhada no final deste plano.
+
 ## Contexto
 
 Hoje o portal SvelteKit redireciona direto para `/auth/login/google` em qualquer rota não autenticada — não há página pública, nem escolha de provedor, nem caminho para visitantes explorarem a aplicação sem fazer OAuth.
@@ -441,3 +447,71 @@ Cada PR roda CI local antes de push.
 - `portal/src/lib/components/TopNav.svelte` (item Sair + logo aponta /app quando logado)
 - `portal/.env.example` (+PUBLIC_DEMO_MODE)
 - Todos os `+page.server.ts` com `redirect(302, '/')` por "não autenticado" → `'/login'`
+
+---
+
+## PR-7 — Completar landing com 6 blocos restantes
+
+A PR #15 entregou o esqueleto inicial (Hero + StatBar + Atendimento à norma + Footer). Faltam **6 blocos** previstos no handoff v2:
+
+### Componentes novos (TDD por componente)
+
+Cada `.svelte` em `src/lib/components/landing/` com `.test.ts` ao lado:
+
+| Componente | Origem | Função |
+|---|---|---|
+| `ConformidadeTimeline.svelte` | `landing-ui2.jsx:1-65` | Timeline horizontal escura com 6 etapas do ciclo da norma (números, prazos, artigos do decreto/IN) |
+| `SeloConformidade.svelte` | `landing-ui2.jsx:67-99` | Card individual: ícone + título + descrição + status (`implementado`/`em conformidade`) |
+| `RoadmapItem.svelte` | `landing-ui2.jsx:128-154` | Item de roadmap com bullet ocre + título + descrição + tag opcional |
+| `ArqItem.svelte` | `landing-screens.jsx:403-419` | Item da seção Arquitetura: check verde + título + descrição |
+| `IARecursoCard.svelte` (novo) | `landing-screens.jsx:117-156` | Card grande roxo: ícone gradient, título, descrição da reescrita IA, chips dos 4 templates, link "Detalhes" |
+
+### Seções a adicionar em `src/routes/+page.svelte`
+
+Inseridas **entre** o "Atendimento à norma" e o `FooterInstitucional`:
+
+#### Bloco 1 — Ciclo da norma (dark)
+- `lp-section dark` com id `#norma` extra (ancora)
+- Eyebrow ocre "ciclo da norma"
+- H2 "Da pactuação ao envio à API Central, sem ação manual."
+- Lede branco-translúcido sobre o ciclo
+- `<ConformidadeTimeline />` com 6 steps hardcoded (estão no JSX de referência)
+
+#### Bloco 2 — Inteligência generativa
+- `lp-section` com id `#ia`
+- Grid 2 colunas (1fr 1.4fr): sticky left com eyebrow roxo + H2 + lede; direita com:
+  - Chip verde "Disponível na demonstração" + `IARecursoCard` da Reescrita
+  - Chip ocre "Em desenvolvimento" + 3 `RoadmapItem` (PárcIA, Resumo automático, Rascunho com tom da chefia)
+
+#### Bloco 3 — Conformidade e padrões (cream)
+- `lp-section cream` com id `#conformidade`
+- Eyebrow + H2 "Construído para o serviço público." + lede
+- Grid 3-col com 8 `SeloConformidade`: LGPD, WCAG 2.1 AA, e-MAG, e-PING, CSP, Auditoria imutável, Multi-tenant, Acesso institucional via Gov.br
+- Cada selo tem `icon` SVG inline, `ttl`, `sub`, `status` ("implementado" ou "em conformidade")
+
+#### Bloco 4 — Arquitetura
+- `lp-section` com id `#arquitetura`
+- Grid 2 colunas (1.1fr 1fr):
+  - Esquerda: eyebrow + H2 "Software Livre, desacoplado e auditável." + lede + 4 `ArqItem` (AGPL+CC-BY, GraphQL desacoplado, IaC Terraform, Workflow com agentes) + chips da stack
+  - Direita: diagrama-mockup "Seu órgão (self-hosted)" → seta HTTPS·GraphQL → "MGI API PGD Central"
+
+#### Bloco 5 — Em desenvolvimento (cream)
+- `lp-section cream`
+- Eyebrow ocre + H2 "O que vem a seguir." + lede
+- Grid 2-col com 6 `RoadmapItem`: CSV/JSON/YAML, PDF lote, GitHub Projects, plataformas SaaS, multicanal, PárcIA app
+
+### Tokens CSS adicionais
+
+Verificar se `--c-status-aval` (roxo) está em `app.css` ou `landing.css`. Se não, adicionar.
+
+### Testes mínimos
+
+Para cada componente novo: 3 testes (render básico, props obrigatórias, slot opcional). Para a página, atualizar `src/routes/page.server.test.ts` apenas se a load function mudar — o conteúdo da landing é estático em Svelte template, sem novos testes server-side.
+
+### Verificação
+
+1. `npx vitest run` ✅ (~600 testes)
+2. `npm run check` ✅ 0 erros
+3. Smoke local: `http://localhost:5173/` mostra os 10 blocos completos
+4. CI verde + smoke prod pós-deploy
+
