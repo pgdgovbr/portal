@@ -176,4 +176,56 @@ describe('Meu Plano (+page.svelte)', () => {
 			expect(ocorrencias.length).toBeGreaterThan(0);
 		});
 	});
+
+	describe('Bug #3 (Fase 12.5) — "Planos anteriores" no aside da tela de PT ativo', () => {
+		it('com planoAtivo e planosAnteriores → renderiza card "Planos anteriores" no aside', () => {
+			const data = makeData({
+				planosTrabalho: [makePlanoEmExecucao()],
+				planosAnteriores: [makePlanoAnterior()]
+			});
+			render(MeuPlanoPage, { props: { data } });
+
+			const aside = screen.getByTestId('aside-planos-anteriores');
+			expect(aside).toBeInTheDocument();
+			expect(aside).toHaveTextContent('Planos anteriores');
+		});
+
+		it('com planoAtivo e planosAnteriores → renderiza botão Clonar para cada plano anterior', () => {
+			const data = makeData({
+				planosTrabalho: [makePlanoEmExecucao()],
+				planosAnteriores: [
+					makePlanoAnterior({ id: 'PT-OLD-1' }),
+					makePlanoAnterior({ id: 'PT-OLD-2' })
+				]
+			});
+			render(MeuPlanoPage, { props: { data } });
+
+			expect(
+				screen.getByRole('button', { name: /Clonar plano PT-OLD-1/i })
+			).toBeInTheDocument();
+			expect(
+				screen.getByRole('button', { name: /Clonar plano PT-OLD-2/i })
+			).toBeInTheDocument();
+		});
+
+		it('com planoAtivo e SEM planosAnteriores → mostra mensagem "Nenhum plano concluído ainda"', () => {
+			const data = makeData({
+				planosTrabalho: [makePlanoEmExecucao()],
+				planosAnteriores: []
+			});
+			render(MeuPlanoPage, { props: { data } });
+
+			expect(screen.getByText(/Nenhum plano concluído ainda/i)).toBeInTheDocument();
+		});
+
+		it('com planoAtivo e planosAnteriores → o nome legado "Outros planos" não aparece mais', () => {
+			const data = makeData({
+				planosTrabalho: [makePlanoEmExecucao()],
+				planosAnteriores: [makePlanoAnterior()]
+			});
+			render(MeuPlanoPage, { props: { data } });
+
+			expect(screen.queryByText(/Outros planos/i)).toBeNull();
+		});
+	});
 });

@@ -524,18 +524,33 @@
 					</div>
 				</section>
 
-				<section class="card">
-					<div class="card-hd"><h2 style="font-size:17px">Outros planos</h2></div>
-					{#if planos.length <= 1}
-						<p style="color:var(--c-muted); font-size:13px">Nenhum histórico anterior.</p>
+				<section class="card" data-testid="aside-planos-anteriores">
+					<div class="card-hd"><h2 style="font-size:17px">Planos anteriores</h2></div>
+					{#if planosAnteriores.length === 0}
+						<p style="color:var(--c-muted); font-size:13px">Nenhum plano concluído ainda.</p>
 					{:else}
+						<p style="color:var(--c-muted); font-size:12.5px; margin-bottom:10px">
+							Aproveite contribuições e critérios de planos antigos como base para o próximo.
+						</p>
 						<div class="stack-12">
-							{#each planos.filter((p: any) => p.id !== planoAtivo.id) as p (p.id)}
-								<div class="row">
-									<StatusBadge status={p.status} />
-									<div style="flex:1; font-size:13px">
-										{formatDate(p.dataInicio)} → {formatDate(p.dataFim)}
+							{#each planosAnteriores as p (p.id)}
+								<div class="anterior-item">
+									<div style="flex:1; min-width:0">
+										<div class="anterior-id">{p.id}</div>
+										<div class="anterior-per">
+											{formatPeriodo(p.dataInicio, p.dataFim)}
+										</div>
 									</div>
+									<StatusBadge status={p.status} size="sm" />
+									<button
+										type="button"
+										class="tn-iconbtn anterior-btn"
+										title="Clonar"
+										aria-label="Clonar plano {p.id}"
+										onclick={() => abrirClone(p)}
+									>
+										<Icon name="file" size={13} />
+									</button>
 								</div>
 							{/each}
 						</div>
