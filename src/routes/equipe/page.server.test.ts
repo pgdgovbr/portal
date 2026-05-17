@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { load, derivarAcaoChefia } from './+page.server';
+import { load, _derivarAcaoChefia } from './+page.server';
 
 function makeCookies(token?: string) {
 	return {
@@ -125,23 +125,23 @@ describe('+page.server (equipe) — load', () => {
 	});
 });
 
-describe('derivarAcaoChefia', () => {
+describe('_derivarAcaoChefia', () => {
 	it('AGUARDANDO_ASSINATURA_CHEFIA → "assinar"', () => {
-		expect(derivarAcaoChefia('AGUARDANDO_ASSINATURA_CHEFIA')).toBe('assinar');
+		expect(_derivarAcaoChefia('AGUARDANDO_ASSINATURA_CHEFIA')).toBe('assinar');
 	});
 	it('RASCUNHO_CHEFIA → "assinar"', () => {
-		expect(derivarAcaoChefia('RASCUNHO_CHEFIA')).toBe('assinar');
+		expect(_derivarAcaoChefia('RASCUNHO_CHEFIA')).toBe('assinar');
 	});
 	it('RASCUNHO_PARTICIPANTE → "aguardar"', () => {
-		expect(derivarAcaoChefia('RASCUNHO_PARTICIPANTE')).toBe('aguardar');
+		expect(_derivarAcaoChefia('RASCUNHO_PARTICIPANTE')).toBe('aguardar');
 	});
 	it('AGUARDANDO_ASSINATURA_PARTICIPANTE → "aguardar"', () => {
-		expect(derivarAcaoChefia('AGUARDANDO_ASSINATURA_PARTICIPANTE')).toBe('aguardar');
+		expect(_derivarAcaoChefia('AGUARDANDO_ASSINATURA_PARTICIPANTE')).toBe('aguardar');
 	});
 	it('EM_EXECUCAO → "ver"', () => {
-		expect(derivarAcaoChefia('EM_EXECUCAO')).toBe('ver');
+		expect(_derivarAcaoChefia('EM_EXECUCAO')).toBe('ver');
 	});
 	it('null → "aguardar"', () => {
-		expect(derivarAcaoChefia(null)).toBe('aguardar');
+		expect(_derivarAcaoChefia(null)).toBe('aguardar');
 	});
 });
