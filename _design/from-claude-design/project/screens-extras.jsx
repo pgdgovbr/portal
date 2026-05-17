@@ -7,8 +7,8 @@
 const ScreenPlanoEntregas = ({ density }) => {
   const entregas = [
     { id: "E-21", ttl: "Renovação do portal de serviços da CGTIC",          resp: "Lucas Pereira",       prazo: "30 jun", status: "execucao", prog: 65, contrib: 3 },
-    { id: "E-22", ttl: "Migração da base SIAPE para PostgreSQL 16",         resp: "Ana Beatriz Costa",   prazo: "15 jul", status: "execucao", prog: 78, contrib: 2 },
-    { id: "E-23", ttl: "Adesão obrigatória ao Gov.br ID",                   resp: "Ana Beatriz Costa",   prazo: "31 jul", status: "aprovado", prog: 30, contrib: 4 },
+    { id: "E-22", ttl: "Migração da base SIAPE para PostgreSQL 16",         resp: "Nitai Bezerra",   prazo: "15 jul", status: "execucao", prog: 78, contrib: 2 },
+    { id: "E-23", ttl: "Adesão obrigatória ao Gov.br ID",                   resp: "Nitai Bezerra",   prazo: "31 jul", status: "aprovado", prog: 30, contrib: 4 },
     { id: "E-24", ttl: "Catálogo de APIs internas",                          resp: "Renata Santos",       prazo: "30 set", status: "aprovado", prog: 12, contrib: 2 },
     { id: "E-25", ttl: "Unificação de identidades · apoio à CGRH",          resp: "Felipe Ribeiro",      prazo: "31 ago", status: "aprovado", prog: 0,  contrib: 2 },
     { id: "E-26", ttl: "Dashboards de observabilidade",                      resp: "Juliana Almeida",     prazo: "30 nov", status: "rascunho", prog: 0,  contrib: 0 },
@@ -149,7 +149,7 @@ const ScreenPlanoEntregas = ({ density }) => {
               <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: "-6px 0 12px" }}>{totalContrib} contribuições de 11 servidores vinculam a este plano.</p>
               <div className="stack-12">
                 {[
-                  { n: "Ana Beatriz Costa", q: 2 },
+                  { n: "Nitai Bezerra", q: 2 },
                   { n: "Lucas Pereira",     q: 2 },
                   { n: "Renata Santos",     q: 2 },
                   { n: "Juliana Almeida",   q: 1 },
@@ -384,10 +384,10 @@ const ScreenInstitucional = ({ density }) => {
 // ── Tela 15: Perfil do Participante ────────────────────────────────────
 const ScreenPerfilParticipante = ({ density }) => {
   const SERV = {
-    nome: "Ana Beatriz Costa",
+    nome: "Nitai Bezerra",
     siape: "1928374",
     cpf: "123.456.789-00",
-    email: "ana.costa@orgao.gov.br",
+    email: "nitai.bezerra@orgao.gov.br",
     cargo: "Analista em Tecnologia da Informação",
     und: "CGTIC",
     chefe: "Carlos Mendes",

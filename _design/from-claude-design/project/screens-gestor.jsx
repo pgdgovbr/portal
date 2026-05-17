@@ -295,7 +295,7 @@ const ScreenListaParticipantes = ({ density }) => {
   // Mistura ativos + desligados + de várias unidades para mostrar a diferença
   // em relação à "Lista da Equipe".
   const PARTS = [
-    { nome: "Ana Beatriz Costa",  siape: "1928374", und: "CGTIC", cargo: "Analista de TI",  ativo: true,  mod: 3, tcr: "Vigente", plano: "execucao", since: "01/02/2026" },
+    { nome: "Nitai Bezerra",  siape: "1928374", und: "CGTIC", cargo: "Analista de TI",  ativo: true,  mod: 3, tcr: "Vigente", plano: "execucao", since: "01/02/2026" },
     { nome: "Lucas Pereira",      siape: "2840193", und: "CGTIC", cargo: "Analista de TI",  ativo: true,  mod: 2, tcr: "Vigente", plano: "execucao", since: "01/02/2026" },
     { nome: "Mariana Andrade",    siape: "1740285", und: "CGRH",  cargo: "Chefe CGRH",      ativo: true,  mod: 1, tcr: "Vigente", plano: "execucao", since: "10/01/2026" },
     { nome: "Felipe Ribeiro",     siape: "1947382", und: "CGTIC", cargo: "Analista de TI",  ativo: true,  mod: 3, tcr: "Vigente", plano: "aprovado", since: "—" },

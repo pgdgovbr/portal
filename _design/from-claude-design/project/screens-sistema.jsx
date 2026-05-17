@@ -15,7 +15,7 @@ const ScreenNotificacoes = ({ density }) => {
 
   return (
     <div className="pgd-app" data-density={density} data-screen-label="Notificações">
-      <TopNav role="servidor" active="notif" alerts={3} user={{ name: "Ana Beatriz Costa", role: "Servidora · Analista", initials: "AC" }} />
+      <TopNav role="servidor" active="notif" alerts={3} user={{ name: "Nitai Bezerra", role: "Servidor · Analista", initials: "NB" }} />
       <div className="pg" style={{ maxWidth: 1080 }}>
         <div className="pg-head">
           <div>

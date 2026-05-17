@@ -3,6 +3,8 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import Stepper from '$lib/components/Stepper.svelte';
 	import UrgencyPill from '$lib/components/UrgencyPill.svelte';
+	import AIRewritePanel from '$lib/components/AIRewritePanel.svelte';
+	import { AI_REWRITE_MIN_CHARS } from '$lib/ai-rewrite-constants';
 	import { env } from '$env/dynamic/public';
 
 	const STEPS = ['Período', 'Descrição da execução', 'Ocorrências', 'Revisão e envio'];
@@ -18,6 +20,38 @@
 	let descricao = $state('');
 	let ocorrencias = $state('');
 	let contribuicaoId = $state('');
+
+	// AI rewrite state
+	let aiPanelOpen = $state(false);
+	let preAIText = $state('');
+	let aiAppliedAt = $state<Date | null>(null);
+	let lastAIEventId = $state('');
+	let aiUndoTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function onDescricaoInput() {
+		autoSave();
+		// Se servidor editou o textarea após aplicar IA, esconde o chip de undo
+		if (aiAppliedAt && descricao !== preAIText && descricao !== aiAppliedText) {
+			aiAppliedAt = null;
+		}
+	}
+
+	let aiAppliedText = $state('');
+
+	function tempoRelativo(dt: Date): string {
+		const s = Math.floor((Date.now() - dt.getTime()) / 1000);
+		if (s < 60) return `há ${s}s`;
+		const m = Math.floor(s / 60);
+		if (m < 60) return `há ${m} min`;
+		return `há ${Math.floor(m / 60)}h`;
+	}
+
+	function undoAIRewrite() {
+		descricao = preAIText;
+		aiAppliedAt = null;
+		aiAppliedText = '';
+		autoSave();
+	}
 
 	function autoSave() {
 		clearTimeout(autoSaveTimer);
@@ -162,14 +196,33 @@
 				{:else if step === 1}
 					<!-- Step 2: Descrição -->
 					<div class="field">
-						<label for="desc">Descrição dos trabalhos executados</label>
+						<div class="row" style="justify-content:space-between; align-items:center">
+							<label for="desc" style="margin-bottom:0">Descrição dos trabalhos executados</label>
+							<button
+								type="button"
+								class="btn-ai-rewrite"
+								disabled={descricao.length < AI_REWRITE_MIN_CHARS || aiPanelOpen}
+								title={descricao.length < AI_REWRITE_MIN_CHARS
+									? 'Escreva pelo menos um parágrafo para usar a IA'
+									: 'Reestruturar o texto com IA'}
+								onclick={() => {
+									aiPanelOpen = true;
+								}}
+								data-testid="open-ai-rewrite"
+							>
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
+								</svg>
+								Reescrever com IA
+							</button>
+						</div>
 						<textarea
 							id="desc"
 							class="textarea"
 							rows={10}
 							placeholder="Descreva detalhadamente as atividades realizadas no período, incluindo entregas concretas, participação em reuniões relevantes, documentos produzidos, etc."
 							bind:value={descricao}
-							oninput={autoSave}
+							oninput={onDescricaoInput}
 							aria-required="true"
 							aria-describedby="desc-help"
 							style="min-height:200px"
@@ -180,6 +233,40 @@
 								{descricao.length} caracteres
 							</span>
 						</div>
+
+						{#if aiAppliedAt}
+							<div class="ai-undo-chip" role="status">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
+								</svg>
+								Reescrito com IA · {tempoRelativo(aiAppliedAt)} ·
+								<button type="button" class="ai-undo-link" onclick={undoAIRewrite} data-testid="ai-undo">
+									desfazer
+								</button>
+							</div>
+						{/if}
+
+						{#if aiPanelOpen}
+							<AIRewritePanel
+								originalText={descricao}
+								onApply={(novo, evId) => {
+									preAIText = descricao;
+									descricao = novo;
+									aiAppliedText = novo;
+									aiAppliedAt = new Date();
+									lastAIEventId = evId;
+									aiPanelOpen = false;
+									autoSave();
+									if (aiUndoTimer) clearTimeout(aiUndoTimer);
+									aiUndoTimer = setTimeout(() => {
+										aiAppliedAt = null;
+									}, 60_000);
+								}}
+								onCancel={() => {
+									aiPanelOpen = false;
+								}}
+							/>
+						{/if}
 					</div>
 
 				{:else if step === 2}
@@ -300,3 +387,48 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.btn-ai-rewrite {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 12px;
+		border-radius: 999px;
+		font-size: 12.5px;
+		font-weight: 600;
+		color: white;
+		background: linear-gradient(135deg, var(--c-status-aval, #5c2d91) 0%, #7a4ab5 100%);
+		border: none;
+		cursor: pointer;
+		transition: filter 0.12s, opacity 0.12s;
+	}
+	.btn-ai-rewrite:hover:not(:disabled) {
+		filter: brightness(1.08);
+	}
+	.btn-ai-rewrite:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+	.ai-undo-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 10px;
+		padding: 6px 12px;
+		border-radius: 999px;
+		font-size: 12px;
+		color: var(--c-status-aval, #5c2d91);
+		background: color-mix(in srgb, var(--c-status-aval, #5c2d91) 8%, white);
+		border: 1px solid color-mix(in srgb, var(--c-status-aval, #5c2d91) 20%, transparent);
+	}
+	.ai-undo-link {
+		background: none;
+		border: none;
+		color: var(--c-status-aval, #5c2d91);
+		text-decoration: underline;
+		cursor: pointer;
+		font-size: 12px;
+		padding: 0;
+	}
+</style>

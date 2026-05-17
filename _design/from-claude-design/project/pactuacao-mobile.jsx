@@ -3,7 +3,7 @@
 // - Chefia assina PT recebido no celular
 // - Estado vazio /meu-plano no mobile (criar/clonar)
 
-const USR_SRV_M = { name: "Ana Beatriz Costa", role: "Servidora · Analista", initials: "AC" };
+const USR_SRV_M = { name: "Nitai Bezerra", role: "Servidor · Analista", initials: "NB" };
 
 // Pequenos componentes mobile (reuso parcial do screens-mobile.jsx existente)
 const PactNav = ({ title, back, right }) => (
@@ -224,14 +224,14 @@ const ScreenMobileMeuPlanoRevisar = () => {
 const ScreenMobileChefiaRevisar = () => (
   <IOSDevice width={402} height={874}>
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--c-bg)" }} className="pgd-app" data-density="confortavel">
-      <PactNav title="Plano de Ana" back right={<button className="tn-iconbtn" style={{ width: 36, height: 36, marginRight: -4 }}><Icon name="dots" size={18} /></button>} />
+      <PactNav title="Plano de Nitai" back right={<button className="tn-iconbtn" style={{ width: 36, height: 36, marginRight: -4 }}><Icon name="dots" size={18} /></button>} />
 
       <div style={{ flex: 1, overflow: "auto", padding: "0 0 100px" }}>
         {/* Servidor header */}
         <div style={{ padding: 16, background: "white", borderBottom: "1px solid var(--c-border)", display: "flex", gap: 12, alignItems: "center" }}>
-          <span className="av av-md" style={{ background: avatarColor("Ana Beatriz Costa"), color: "white" }}>AC</span>
+          <span className="av av-md" style={{ background: avatarColor("Nitai Bezerra"), color: "white" }}>NB</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14.5 }}>Ana Beatriz Costa</div>
+            <div style={{ fontWeight: 700, fontSize: 14.5 }}>Nitai Bezerra</div>
             <div style={{ fontSize: 11.5, color: "var(--c-muted)", fontFamily: "var(--ff-mono)" }}>SIAPE 1928374 · CGTIC</div>
           </div>
           <StatusBadgeV2 status="AGUARDANDO_ASSINATURA_CHEFIA" size="sm" />
@@ -248,7 +248,7 @@ const ScreenMobileChefiaRevisar = () => (
             <Icon name="clock" size={16} stroke={2} className="" />
             <strong style={{ fontSize: 14 }}>Aguardando sua assinatura</strong>
           </div>
-          <p style={{ fontSize: 12.5, color: "var(--c-ink-2)", margin: 0 }}>Ana enviou há <strong>2 dias</strong>.</p>
+          <p style={{ fontSize: 12.5, color: "var(--c-ink-2)", margin: 0 }}>Nitai enviou há <strong>2 dias</strong>.</p>
         </div>
 
         {/* Plano resumido */}
@@ -289,7 +289,7 @@ const ScreenMobileChefiaRevisar = () => (
           <div className="kicker" style={{ marginBottom: 8 }}>Status</div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", padding: 10, background: "var(--c-success-soft)", borderRadius: "var(--r-sm)", marginBottom: 6 }}>
             <span style={{ width: 24, height: 24, borderRadius: 12, background: "var(--c-success)", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="check" size={12} stroke={2.4} /></span>
-            <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600 }}>Ana assinou</span>
+            <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600 }}>Nitai assinou</span>
             <span style={{ fontSize: 11, color: "var(--c-muted)" }}>12 mai</span>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", padding: 10, background: "var(--c-warning-soft)", border: "1.5px solid var(--c-warning)", borderRadius: "var(--r-sm)" }}>

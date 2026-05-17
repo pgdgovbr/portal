@@ -65,7 +65,7 @@ const ScreenMobileDashboard = () => (
         {/* Greeting */}
         <div style={{ marginBottom: 18 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-muted)", textTransform: "uppercase", letterSpacing: ".08em" }}>Quarta · 15 mai</div>
-          <h2 style={{ fontFamily: "var(--ff-display)", fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", margin: "4px 0 0" }}>Olá, Ana</h2>
+          <h2 style={{ fontFamily: "var(--ff-display)", fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", margin: "4px 0 0" }}>Olá, Nitai</h2>
         </div>
 
         {/* Banner urgência */}

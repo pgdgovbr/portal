@@ -696,3 +696,455 @@ Salvo em `handoff-to-claude-code.md` na raiz. Estruturado pra ele conseguir mont
 
 Pode passar o caminho direto pro Claude Code.
 
+## User
+
+agora precisamos avançar mais. E para melhorar seu contexto, estou compartilhando todo o projeto, não apenas o repo do frontend (portal). Um repo novo super estratégico é o pgdgovbr/docs/
+
+A missão. Abaixo meu relato após implementar tudo e rodar.
+------------
+Consegui logar. Mas vejo que não temos uma home e ao acessar já somos logo autenticados como user na aplicação. Vamos criar essa tela que basicamente tem o login.
+
+Quero aproveitar para possibilitar que o user, após logar, possa escolher entre seguir com o user dele, ou escolher um dos perfis criados no seed com uma conta já com dados e ações interessantes na jornada para serem executadas.
+
+Mais que isso. Chegou a hora de termos uma Landing Page do produto. o Portal é de fato o Web App frontend do pgd-libre. Porém como o projeto está no início, quero aproveitar para criar a Landing Page no mesmo lugar. Ou seja, a home passa a ser essa nova Landing Page do produto (o software livre que pode ser instalado por qualquer órgão e tralalal...) e nela tem um Botão de Demo que leva para a landing page do portal em si, instalada em um órgão simulado (neste caso o MGI alinhado com nossos dados de seed)
+
+Essa Landing Page tem o objetivo de apresentar a solução como um produto, destacando os benefícios, a interoperabilidade, atendimento às normas, auditoria, e tal...
+
+Mais contexto. Acabo de criar a docs no repo @/Users/nitai/dev/destaquesgovbr/pgdgovbr/docs 
+-------------
+
+Antes de prosseguir, interaja comigo para definirmos algumas questões da landing page. Aproveite para propor algumas coisas criativas
+
+## Assistant
+
+_[tool: local_ls]_
+
+_[tool: local_ls]_
+
+_[tool: local_read]_
+
+_[tool: local_read]_
+
+_[tool: local_read]_
+
+## User
+
+Prompt para você colar no Claude Design
+
+  Vou começar a próxima evolução do PGD Libre com você: criar uma landing
+  page institucional do produto + uma tela de login com personas demo.
+
+  O handoff completo está em:
+    portal/_design/handoff-landing-page.md
+
+  Leia ele primeiro de cabo a rabo. Ele contém:
+  - O contexto (por que essa mudança)
+  - As 3 telas a desenhar (/ landing, /login, /app)
+  - Personas do seed para a tela demo
+  - 7 decisões de UX que preciso da sua recomendação
+  - Referências a todo o projeto (legislação, screenshots existentes,
+    docs em produção, tokens CSS já validados)
+
+  Antes de propor mockups, sugiro que você também olhe:
+  - portal/_design/from-claude-design/ (seu trabalho anterior — tokens.css
+    e ui.jsx têm a paleta e ícones que já desenhamos juntos)
+  - portal/_design/handoff-workflow-pactuacao-pt.md (handoff anterior, só
+    pra ver o formato/estilo de briefing que funcionou bem)
+  - portal/src/app.css (paleta em produção)
+  - docs/docs/assets/screenshots/ (35+ capturas do produto reais —
+    desktop e mobile — pode usar livremente na landing)
+  - pgd-libre/_legislacao/decreto-11072-2022.md (base legal pro discurso)
+
+  Quando estiver pronto, me devolva:
+  1. Mockups das 3 telas (desktop + mobile)
+  2. Recomendações sobre as 7 decisões de UX (seção 7 do handoff)
+  3. Copy completo da landing (ou esqueleto)
+  4. Componentes novos com mockup individual
+  5. Tokens CSS adicionais se precisar
+
+  Sem deadline. Qualidade > velocidade. É a primeira impressão do
+  produto para qualquer pessoa nova.
+----
+
+Think hard!
+
+## Assistant
+
+_[tool: snip]_
+
+_[tool: local_ls]_
+
+_[tool: local_ls]_
+
+_[tool: local_read]_
+
+_[tool: local_ls]_
+
+_[tool: local_ls]_
+
+_[tool: local_ls]_
+
+_[tool: local_ls]_
+
+_[tool: local_ls]_
+
+_[tool: local_ls]_
+
+_[tool: local_ls]_
+
+Li tudo. Tenho contexto suficiente do produto, da paleta existente (`#0F3D8C` como `--c-primary`, Public Sans + Manrope, design tokens em `app.css`), das 35+ screenshots reais e da legislação. Antes de mockup, deixa eu te apresentar minha leitura + propostas criativas e perguntas focadas.
+
+## Minha leitura das 7 decisões (recomendações)
+
+1. **Identidade visual** → **paleta própria, derivada do `#0F3D8C` que já é institucional**. Mas com tom *editorial* diferente do app: mais respiração, mais espaço em branco, tipografia maior, ritmo de leitura. Pretendo introduzir 1 cor de acento quente (ocre `#C77400` que já existe como `--c-warning`) reposicionada como cor de destaque editorial — não warning, mas "humano". Cria contraste sem inventar paleta.
+
+2. **URL** → **`/app`**. Curto, claro, técnico.
+
+3. **Hero** → **estático com hover/scroll sutil**. LCP < 2s exige isso. Mockup real do produto (screenshot do dashboard) em browser chrome estilizado à direita, copy à esquerda — split clássico mas eficiente. Sem vídeo no fold.
+
+4. **Screenshots reais na landing** → **SIM, em destaque**. São o melhor argumento de venda do projeto. Tem 35+ prontos. Cada seção principal recebe uma screenshot grande, com anotações.
+
+5. **Grade de personas** → **cards visuais com avatares (inicial+cor), agrupados por jornada** ("Comece por aqui", "Explorar como chefia", "Ver visão de gestão", "Visão admin"), não por role. Total 10 personas, mas 3-4 destacados como "recomendados" pra evitar paralisia de escolha.
+
+6. **OAuth Google** → **manter, mas secundário**. Gov.br é a opção oficial primária. Google fica como "outras opções" abaixo, discreto.
+
+7. **Banner "instância demo"** → **persistente nas rotas internas**, mas discreto (faixa fina no topo) + botão "Trocar persona" no header. Pode ser dispensado por X (memoriza por sessão).
+
+## Propostas criativas pra explorar contigo
+
+Não quero fazer landing genérica de SaaS B2B. Propostas pra dar caráter:
+
+**A. "Anatomia de uma pactuação" como seção principal** — em vez de diagrama genérico de fluxo, uma sequência narrativa visual: servidor cria → chefia revisa → ajustes → assinaturas se acendem → "em execução". Pode rolar com scroll-trigger sutil. **Isso é o que diferencia o produto de qualquer outro sistema** (pactuação bilateral conforme decreto) e merece destaque, não bullet em card.
+
+**B. "Conformidade visível" em vez de "implementamos a IN X/2023"** — timeline anotada com os prazos da legislação (10 dias para registrar, 20 para avaliar, 10 para recurso), cada um amarrado discretamente ao artigo da norma como nota de rodapé. Posiciona o produto como *operacionalização da lei*, não como "mais um sistema".
+
+**C. "Você é quem?" em vez de cards genéricos** — 3 mini-jornadas com screenshots reais ("Você é servidor → você vê isso", "Você é chefia → vê isso", "Você é gestor → vê isso") e CTA "Explore como [persona]" que **leva direto à demo logada como aquela persona**. Funde a seção "para quem é" com o convite para a demo.
+
+**D. Comparação honesta com o status quo** — tabela curta: "planilha Excel × API PGD Central isolada × PGD Libre". Não é estilo pitch deck — é diagnóstico técnico do problema atual.
+
+**E. Footer "infraestrutura cívica"** — não terminar em "GitHub + MIT". Reposicionar: "código aberto brasileiro, parte de `pgdgovbr` — outros projetos do ecossistema". Mais nobre, mais cívico.
+
+**F. Login com personas e oficiais lado a lado, não em telas separadas** — no MESMO viewport: à esquerda os botões oficiais (Gov.br + Google), à direita o card de demo com grade. Banner amarelo discreto no topo do card de demo. Quando vier de `?demo=true`, o card de demo expande pra ocupar mais espaço, mas a opção oficial continua visível.
+
+## Perguntas que preciso para fechar (8)
+
+1. **Nome oficial/wordmark**: "PGD Libre" final? Existe logo ou marca visual ou eu desenho um wordmark tipográfico simples (proposta: Manrope 800, possivelmente com um ícone-monograma discreto)?
+
+2. **Tom da copy**: institucional sóbrio é claro. Mas posso ser editorial/opinativo em pontos específicos? Tipo *"O PGD não cabe em planilha. Esta é a alternativa."* Ou prefere tudo mais neutro como gov.br oficial?
+
+3. **Alvo nº 1 da landing**: se tivesse que escolher 1 perfil dos 3 (decisor de TI/Inovação de outro órgão, servidor curioso, jornalista) — quem é o leitor prioritário? Isso ajusta muito o copy.
+
+4. **Roadmap público na landing**: mostrar ou não? Pode aumentar credibilidade ("isso aqui é vivo, em desenvolvimento ativo") mas exige manter atualizado.
+
+5. **Multi-tenant / "instalar no seu órgão"**: quanto a landing aprofunda? Recomendo seção compacta "Quer levar pro seu órgão?" com link pra docs de install — concorda?
+
+6. **CTA "Ver demo" do hero** leva direto à grade de personas (skip dos oficiais) ou para `/login` completo (com personas visíveis no mesmo viewport mas oficiais também)? Eu recomendo a segunda — mantém um caminho só.
+
+7. **api-pgd no monorepo**: é parte do mesmo produto (back-end PGD Libre) ou um projeto separado do ecossistema `pgdgovbr`? Isso muda como linkar no footer.
+
+8. **Imagens institucionais MGI/SEGES**: posso mostrar logos institucionais (MGI como "powered by", ou similar) na landing? Ou o produto é deliberadamente neutro pra qualquer órgão adotar?
+
+Manda as respostas e eu parto pro mockup. Não precisa responder tudo — só o que tiver opinião formada; nos outros decido eu.
+
+## User
+
+faça as perguntas de forma interativa
+
+## Assistant
+
+_[tool: questions_v2]_
+
+## User
+
+Questions answered:
+- wordmark: Proponha uma Logo. O nome PGD Libre é um codnome e provavelmente vão querer mudar depois que eu apresentar o projeto. Por outro lado talvez eu mude para apenas PGD Livre, em portugês
+- tom: Institucional sóbrio, neutro tipo gov.br
+- alvo: Decisor de TI / Inovação de outro órgão (vai pensar em adotar)
+- roadmap: Não, deixar isso pras docs
+- instalar: Sim, mas só um banner com link pras docs de install
+- demo_path: Decide for me
+- api_pgd: api-pgd é um repo de fora. Ele é a api central que recebe os planos de trabalho de todos os sistemas similares ao PGD. O código está aí pq usamos apenas para testar a interoperabilidade. Mas não tem a ver com nosso produto. Mas é uma feature do projeto. Por sinal, para enriquecer seu contexto você pode sempre olhar o projeto inicial em pgdgovbr/pgd-libre/_projeto
+- marca_mgi: Vamos aproveitar para destacar também a SGD, a Secretaria de Governo Digital, que é de onde eu sou. A plataforma é da SEGES mas a implementação é da SGD
+- hero_visual: Decide for me
+- criativas: C · Mini-jornadas por persona com CTAs diretos pra demo, B · Conformidade visível (timeline com prazos da lei)
+
+## Assistant
+
+_[tool: local_ls]_
+
+_[tool: view_image]_
+
+Recebido. Plano:
+
+- **Wordmark**: vou propor uma marca completa (símbolo + wordmark) e mostrar lado a lado "PGD Libre" e "PGD Livre" pra você decidir. Construída pra ser trocável depois.
+- **Tom**: institucional sóbrio, alvo decisor de TI/Inovação.
+- **api-pgd**: vou mencionar como "interoperabilidade com a API PGD Central do MGI" (a feature, não o repo).
+- **Crédito institucional**: "Realizado pela SGD, plataforma SEGES" — destaque pra SGD como implementadora.
+- **Demo path**: hero "Ver demo" → `/login` completo, oficiais e personas no mesmo viewport (proposta F do criativo — sai de graça com C).
+- **Hero**: screenshot real do dashboard em browser chrome.
+- **Criativas**: B (conformidade visível) + C (mini-jornadas).
+
+Vou olhar 2 coisas rápidas do `_projeto` antes de partir pro mockup, pra deixar o copy correto.
+
+_[tool: local_copy_to_project]_
+
+_[tool: view_image]_
+
+_[tool: local_ls]_
+
+_[tool: view_image]_
+
+_[tool: view_image]_
+
+_[tool: local_copy_to_project]_
+
+_[tool: view_image]_
+
+_[tool: view_image]_
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+Hora de construir. Vou criar tudo num bundle separado pra não misturar com os canvas anteriores.
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+_[tool: done]_
+
+_[tool: fork_verifier_agent]_
+
+Entrega no ar: `PGD Libre — Landing.html` (separado dos canvases anteriores). Resumo:
+
+**7 recomendações de UX** consolidadas como cards de spec na primeira seção do canvas — pro Code conseguir tomar decisão sem reler o briefing.
+
+**4 propostas de marca** lado a lado, com versões "PGD Libre" e "PGD Livre" em cada uma:
+- **A · Geométrico institucional** (recomendado) — mantém memória do logo já implementado, refinado
+- **B · Três barras** — metáfora de ciclo plano/execução/avaliação
+- **C · Pactuação** — duas formas espelhadas que se tocam
+- **D · Ciclo de 3 arcos** — mais ilustrativo
+
+Wordmark trocável trivialmente quando você renomear o produto.
+
+**Landing page completa** (long-scroll, ~5400px) com:
+- Hero com screenshot real do dashboard em browser chrome + anotações flutuantes + crédito SGD/SEGES no fold
+- StatBar (37 requisitos, 4 papéis, 100% open source, 1 instância demo)
+- "Por que existe" — discurso institucional sóbrio + chips da legislação
+- **Mini-jornadas por persona** (criativa C) — Ana/Carlos/Maria com screenshots reais e CTA direto pra demo logada
+- **Conformidade visível** (criativa B) — section escura com timeline horizontal de 6 prazos legais, cada um com artigo da norma como nota
+- Diferenciais técnicos em 4 cards
+- Seção open source com terminal-mockup "instalação em 3 comandos"
+- Banner "rodar no seu órgão" → docs de install
+- Footer institucional com destaque pra SGD/SEGES/MGI + ecossistema pgdgovbr
+
+**Login com 3 caminhos no mesmo viewport** — split 1:1, oficial à esquerda (Gov.br primário, Google secundário com divisor "ou"), demo à direita com banner amarelo de aviso + 4 personas recomendadas em destaque ("Comece por aqui") + `<details>` colapsável com as outras 6.
+
+**Mobile** das duas telas-chave.
+
+**Tokens novos** (`landing-tokens.css`): só extensão da paleta existente — `--c-accent` ocre editorial, `--c-paper` off-white quente, classes `.lp-*` que não conflitam com `.pgd-app`.
+
+**Arquivos criados:**
+```
+PGD Libre — Landing.html        ← entry point
+landing-tokens.css              ← extensão pra estilo editorial
+landing-logo.jsx                ← 4 variantes de marca
+landing-ui.jsx                  ← TopNav, Hero, BrowserFrame, StatBar
+landing-ui2.jsx                 ← JornadaPersona, ConformidadeTimeline, DiferencialCard, BannerInstalar, Footer
+landing-login.jsx               ← LoginOficial, LoginDemo, PersonaCard + dados das 10 personas
+landing-screens.jsx             ← Landing + Login desktop
+landing-mobile.jsx              ← Landing + Login mobile
+landing-app.jsx                 ← composição
+screenshots/*.png               ← 8 capturas reais copiadas do docs/
+```
+
+Aguardando seu feedback pra escolher a marca, ajustar copy se precisar, e depois eu gero o handoff pro Claude Code com plano de implementação.
+
+## User
+
+Verifier agent check completed
+
+## Assistant
+
+_[tool: snip]_
+
+## User
+
+vamos deixar a Landing Page de lado por enquanto. 
+
+Antes disso criamos o "Pactuação Bilateral.html" e já tínhamos o "PGD Libre.html". Quero consolidar ambos e manter um único documento. Perceba que o Pactuação muda o foco da criação do plano para o Servidor e não para a Chefia. 
+
+Faça essa consolidação
+
+## Assistant
+
+_[tool: list_files]_
+
+_[tool: read_file]_
+
+_[tool: read_file]_
+
+_[tool: snip]_
+
+_[tool: read_file]_
+
+_[tool: read_file]_
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+_[tool: delete_file]_
+
+_[tool: snip]_
+
+_[tool: done]_
+
+Pronto. Consolidação completa em **um único `PGD Libre.html`**.
+
+**O que mudou:**
+
+- **Servidor passou a ser o ator padrão da criação do PT** — a seção "Fluxo do Servidor" agora abre com vazio (criar/clonar) → wizard → editar → revisar antes de chegar em "em execução". Reflete o art. 11 do Decreto e o art. 19 da IN 24.
+- **Wizard de criação reposicionado como caso exceção da chefia** — seção própria "Wizard · Chefia criando PT (caso exceção)" para servidor afastado/recém-chegado/indisponível.
+- **Pactuação integrada como parte do produto**, não como entrega separada: decisões de UX, StatusBadge V2 (8 estados), OwnershipBanner, AssinaturaCard, EdicoesTimeline, CloneDialog aparecem como componentes do sistema.
+- **Chefia virou revisor por padrão** — antes da tela de "detalhe do plano em execução" vem "revisar PT recebido do servidor".
+
+**Estrutura final do canvas (30 telas + componentes):**
+
+1. **Decisões de UX** (7 cards) — referência de spec
+2. **StatusBadge expandido** (catálogo dos 8 estados)
+3. **OwnershipBanner** (3 contextos)
+4. **Componentes da pactuação** (Assinatura, Timeline, Clone)
+5. **Componentes base** (Nota, Timeline status)
+6. **Fluxo do Servidor (Ana)** — 10 telas começando em criar/pactuar
+7. **Fluxo da Chefia (Carlos)** — 8 telas começando em revisar
+8. **Wizard como Chefia (exceção)** — 5 steps reposicionados
+9. **Gestor & Admin** — 7 telas
+10. **Transversais** — Notificações
+11. **Mobile** — 8 frames (servidor + chefia)
+
+**Arquivos:**
+- `Pactuação Bilateral.html` e `pactuacao-app.jsx` removidos
+- `app.jsx` reescrito como composição única
+- Demais módulos (`pactuacao-components.jsx`, `pactuacao-screens.jsx`, `pactuacao-mobile.jsx` + os do PGD Libre original) preservados e carregados pelo HTML único
+
+## User
+
+O exemplo tem Ana como servidora. Mude para Nitai (meu nome)
+
+## Assistant
+
+_[tool: snip]_
+
+_[tool: grep]_
+
+_[tool: snip]_
+
+_[tool: run_script]_
+
+Pronto — 46 substituições aplicadas em 10 arquivos:
+
+- "Ana Beatriz Costa" → "Nitai Costa"
+- "Ana Beatriz" → "Nitai" (referências curtas, ex: na timeline de edições)
+- Iniciais "AC" → "NC" no avatar
+- Gênero ajustado: "Servidora" → "Servidor", "como servidora" → "como servidor"
+
+A persona principal nas telas do servidor agora é **Nitai Costa · Servidor · Analista**. Recarregue o `PGD Libre.html` pra ver.
+
+## User
+
+meu nome é Nitai Bezerra. Ainda existem lugares com Ana. Veja
+
+## Assistant
+
+_[tool: snip]_
+
+_[tool: grep]_
+
+_[tool: run_script]_
+
+_[tool: grep]_
+
+_[tool: run_script]_
+
+_[tool: done]_
+
+Pronto. Substituições agora cobrem tudo do bundle consolidado:
+
+- **Nitai Bezerra** (sobrenome corrigido) · iniciais **NB**
+- Saudações: "Olá, Nitai" no Dashboard desktop e mobile
+- Título da seção: "Fluxo do Servidor (Nitai)"
+- E-mail no perfil: `nitai.bezerra@orgao.gov.br`
+- Avatares, listas (Equipe, Conformidade, Perfil) e timeline de pactuação
+
+Os arquivos da landing (`landing-*.jsx`) e o `handoff-to-claude-code.md` foram deixados intactos conforme acordado — voltam quando você retomar a landing.
+
+## User
+
+Agora quero criar uma inovação com GenAI. Quero adicionar na tela "07 · Registrar Execução (wizard)" a possibilidade do uso de IA para reescrever/formatar a Descrição dos trabalhos executados. Podemos ter alguns templates de estrutura de “Registro de Execução”. Pode ter um system prompt e também pode abrir uma caixa de texto para o usuário adicionar algum user prompt (podemos ter um user prompt default que na verdade serve como algo didático, de exemplo, mas que de fato é usado). Ou seja, o user prompt default já funciona (associado ao system prompt) mas o usuário tem a possibilidade de editar antes de aplicar. Se precisar me pergunte algo. 
+
+Quero como resultado, além da atualização, um texto de prompt handoff para o claude code implementar brifando ele sobre o comportamento da feature
+
+## Assistant
+
+_[tool: snip]_
+
+_[tool: read_file]_
+
+_[tool: write_file]_
+
+Tenho contexto suficiente. Vou construir com decisões razoáveis e te entregar tudo — fica fácil iterar depois. Decisões:
+
+- Painel **inline** (não modal), aparece abaixo do textarea quando o usuário clica "Reescrever com IA"
+- **4 templates** de estrutura: Por entrega, Cronológico, Por contribuição, STAR
+- **System prompt fixo** (visível em "Ver prompt do sistema" colapsável) — orienta a IA a manter fatos, formato e linguagem
+- **User prompt default editável** — explicação curta que serve de exemplo
+- **2 estados** do painel: editando (configurar) → revisando (mostra antes/depois, decide Aplicar/Refinar/Cancelar)
+- **Cor de acento roxo** (reuso de `--c-status-aval`) para sinalizar GenAI distinto do resto
+
+_[tool: str_replace_edit]_
+
+_[tool: str_replace_edit]_
+
+_[tool: str_replace_edit]_
+
+_[tool: done]_
+
+_[tool: write_file]_
+
+Pronto — feature funcional no protótipo. Agora o handoff pro Code.Pronto. Entrega completa:
+
+**Protótipo** (`PGD Libre.html`, artboards 07b e 07c)
+- **07 · Registrar Execução** — botão "Reescrever com IA" agora aparece ao lado do label do textarea (pill roxo com sparkles, "BETA")
+- **07b · IA (editing)** — painel inline aberto: seletor de 4 templates (Por entrega / Cronológico / Por contribuição / STAR), textarea de instrução adicional pré-preenchida e editável, system prompt em accordion colapsável, botões Reescrever / Cancelar
+- **07c · IA (previewing)** — painel mostra side-by-side antes/depois, alerta amarelo sinalizando lacunas `[...]` marcadas pela IA, botões Aplicar / Ajustar / Cancelar
+
+Funciona ao vivo no protótipo — clique "Reescrever com IA", escolha um template, clique Reescrever, e veja o preview com o sample do template escolhido. Clicar "Aplicar" substitui o textarea.
+
+**Handoff** (`handoff-ai-rewrite.md`)
+Cobre:
+- Por que a feature existe (problema: texto vago → avaliação injusta)
+- UX detalhado em 2 estados (editing → previewing) + chip de undo pós-aplicação
+- **System prompt completo e travado** (regras invioláveis: não inventar, sinalizar lacunas com `[precisa de detalhe]`)
+- **User prompt default** (didático mas funcional como está)
+- 4 templates com prompts específicos para cada
+- Endpoint backend sugerido (FastAPI) com auditoria, rate limit (10/h), schema
+- Estados defensivos: timeout, resposta vazia, resposta suspeita, etc.
+- Telemetria com `ai_rewrite_registro` + `ai_rewrite_applied` ligados por `parent_event_id` (para medir taxa de aplicação)
+- Privacidade/LGPD com banner discreto e opt-out
+- Ordem de implementação em 8 PRs incrementais
+- Decisões em aberto para você responder (provider, custo, opt-in/out de outras telas)
+
+Pode passar `handoff-ai-rewrite.md` direto pro Claude Code.
+

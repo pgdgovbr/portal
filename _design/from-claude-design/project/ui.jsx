@@ -67,7 +67,7 @@ const TopNav = ({ role = "servidor", active, user, alerts = 0 }) => {
       { id: "institucional", label: "Institucional", icon: "settings" },
     ],
   }[role];
-  const u = user || { name: "Ana Beatriz Costa", role: "Servidora · Analista", initials: "AC" };
+  const u = user || { name: "Nitai Bezerra", role: "Servidor · Analista", initials: "NB" };
   return (
     <nav className="tn">
       <div className="tn-logo">
