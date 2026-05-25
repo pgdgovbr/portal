@@ -117,9 +117,28 @@
 			gap: 40px;
 		}
 	}
-	@media (max-width: 560px) {
+	@media (max-width: 719px) {
 		.lp-footer-grid {
 			grid-template-columns: 1fr;
+			gap: 32px;
+		}
+		.lp-footer-grid > div:first-child {
+			margin-bottom: 4px;
+		}
+		.lp-footer-grid > div:not(:first-child) {
+			display: grid;
+		}
+		.lp-footer h3 {
+			margin-bottom: 12px;
+		}
+		.lp-footer ul {
+			gap: 8px;
+		}
+		.lp-footer a {
+			font-size: 14px;
+		}
+		.lp-footer-rule {
+			margin: 32px 0 18px;
 		}
 	}
 </style>

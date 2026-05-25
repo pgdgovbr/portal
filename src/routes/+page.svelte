@@ -1,12 +1,62 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import '$lib/landing.css';
 	import TopNavLanding from '$lib/components/landing/TopNavLanding.svelte';
 	import FooterInstitucional from '$lib/components/landing/FooterInstitucional.svelte';
 	import ConformidadeTimeline from '$lib/components/landing/ConformidadeTimeline.svelte';
+	import CicloTimelineMobile from '$lib/components/landing/CicloTimelineMobile.svelte';
 	import SeloConformidade from '$lib/components/landing/SeloConformidade.svelte';
 	import RoadmapItem from '$lib/components/landing/RoadmapItem.svelte';
 	import ArqItem from '$lib/components/landing/ArqItem.svelte';
 	import Logo from '$lib/components/landing/Logo.svelte';
+	import PhoneFrame from '$lib/components/landing/PhoneFrame.svelte';
+
+	let statbarRef = $state<HTMLDivElement | undefined>();
+	let stat37 = $state(0);
+	let stat4 = $state(0);
+
+	function animateNumber(setter: (n: number) => void, target: number, duration = 900) {
+		const start = performance.now();
+		const tick = (now: number) => {
+			const t = Math.min(1, (now - start) / duration);
+			const eased = 1 - Math.pow(1 - t, 4);
+			setter(Math.round(target * eased));
+			if (t < 1) requestAnimationFrame(tick);
+		};
+		requestAnimationFrame(tick);
+	}
+
+	onMount(() => {
+		const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+		if (reduceMotion) {
+			document.querySelectorAll('.lp-reveal').forEach((el) => el.classList.add('in-view'));
+			stat37 = 37;
+			stat4 = 4;
+			return;
+		}
+
+		const io = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						entry.target.classList.add('in-view');
+						if (entry.target === statbarRef) {
+							animateNumber((n) => (stat37 = n), 37);
+							animateNumber((n) => (stat4 = n), 4);
+						}
+						io.unobserve(entry.target);
+					}
+				});
+			},
+			{ rootMargin: '0px 0px -10% 0px', threshold: 0.1 }
+		);
+
+		document.querySelectorAll('.lp-reveal').forEach((el) => io.observe(el));
+		if (statbarRef) io.observe(statbarRef);
+
+		return () => io.disconnect();
+	});
 </script>
 
 <svelte:head>
@@ -26,31 +76,52 @@
 	/>
 	<meta property="og:locale" content="pt_BR" />
 	<meta property="og:type" content="website" />
+	<link
+		rel="preload"
+		as="image"
+		href="/screenshots/mobile-registrar-ia.png"
+		fetchpriority="high"
+	/>
 </svelte:head>
 
-<div class="lp">
+<div class="lp" id="top">
 	<TopNavLanding />
 
 	<main>
-		<section class="lp-section lp-hero">
+		<section class="lp-section lp-hero" data-section="hero">
 			<div class="lp-wrap-wide">
 				<div class="lp-hero-grid">
 					<div class="lp-hero-text">
-						<span class="lp-eyebrow">
+						<span class="lp-eyebrow lp-rise">
 							<span class="dot"></span>
 							Software Livre · AGPL-3.0
 						</span>
-						<h1 class="lp-h1">
+						<h1 class="lp-h1 lp-rise">
 							Gestão de desempenho conforme a norma, com a inteligência do nosso tempo.
 						</h1>
-						<p class="lp-lede">
+						<p class="lp-lede lp-rise">
 							Plataforma aderente ao Decreto 11.072/2022 e às Instruções Normativas 24/2023 e
-							52/2023. Da pactuação bilateral do plano de trabalho ao envio à API PGD Central
-							do MGI — com auditoria imutável e ferramentas que ajudam a escrever melhor.
+							52/2023. Da pactuação bilateral do plano de trabalho ao envio à API PGD Central do
+							MGI — com auditoria imutável e ferramentas que ajudam a escrever melhor.
 						</p>
-						<div class="lp-hero-cta">
+
+						<div class="lp-hero-cta lp-rise">
 							<a href="/login" class="lp-btn lp-btn-primary lp-btn-lg">
 								Acessar demonstração
+								<svg
+									class="cta-arrow"
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.4"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<path d="M5 12h14M13 6l6 6-6 6" />
+								</svg>
 							</a>
 							<a
 								href="https://pgdgovbr.github.io/docs/"
@@ -59,54 +130,118 @@
 								Ver documentação
 							</a>
 						</div>
-						<div class="lp-hero-chips">
-							<span class="lp-chip success">Aderente à norma · 4 papéis</span>
-							<span class="lp-chip accent">Inteligência generativa integrada</span>
+
+						<div class="lp-hero-credit lp-rise">
+							<hr />
+							<span>Implementação SGD · Plataforma SEGES</span>
 						</div>
+
+						<div class="lp-hero-phone-mobile lp-rise">
+							<PhoneFrame size="sm">
+								<img
+									src="/screenshots/mobile-registrar-ia.png"
+									alt="Servidor registrando execução com apoio da IA"
+									fetchpriority="high"
+									loading="eager"
+									width="706"
+									height="1506"
+								/>
+							</PhoneFrame>
+							<p class="phone-caption">
+								<svg
+									width="11"
+									height="11"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<rect x="6" y="2" width="12" height="20" rx="2.5" />
+									<path d="M11 18h2" />
+								</svg>
+								Tela real · Registrar execução com IA
+							</p>
+						</div>
+					</div>
+
+					<div class="lp-hero-phone-desktop lp-rise" aria-hidden="false">
+						<span class="hero-callout callout-ia">
+							<svg
+								width="12"
+								height="12"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2.2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
+							</svg>
+							Inteligência generativa integrada
+						</span>
+						<PhoneFrame size="lg">
+							<img
+								src="/screenshots/mobile-registrar-ia.png"
+								alt="Servidor registrando execução com apoio da IA"
+								fetchpriority="high"
+								loading="eager"
+								width="706"
+								height="1506"
+							/>
+						</PhoneFrame>
+						<span class="hero-callout callout-norma">
+							<strong>Aderente à norma</strong>
+							<span>4 papéis · ciclo completo</span>
+						</span>
 					</div>
 				</div>
 			</div>
 		</section>
 
-		<section class="lp-section lp-stat">
+		<section class="lp-section lp-stat" data-section="statbar">
 			<div class="lp-wrap">
-				<div class="lp-stat-grid">
+				<div class="lp-stat-grid" bind:this={statbarRef}>
 					<div>
-						<div class="lp-stat-num">37</div>
+						<div class="lp-stat-num">{stat37}</div>
 						<div class="lp-stat-label">requisitos funcionais cobertos</div>
 					</div>
 					<div>
-						<div class="lp-stat-num">4</div>
+						<div class="lp-stat-num">{stat4}</div>
 						<div class="lp-stat-label">papéis (servidor, chefia, gestor, admin)</div>
 					</div>
 					<div>
-						<div class="lp-stat-num">AGPL</div>
+						<div class="lp-stat-num text">AGPL</div>
 						<div class="lp-stat-label">código sob 3.0 + conteúdo CC-BY-4.0</div>
 					</div>
 					<div>
-						<div class="lp-stat-num">IaC</div>
+						<div class="lp-stat-num text">IaC</div>
 						<div class="lp-stat-label">Terraform · deploy reproduzível</div>
 					</div>
 				</div>
 			</div>
 		</section>
 
-		<section id="norma" class="lp-section">
+		<section id="norma" class="lp-section" data-section="norma">
 			<div class="lp-wrap">
-				<span class="lp-eyebrow"><span class="dot"></span> Atendimento à norma</span>
-				<h2 class="lp-h2" style="margin-top: 16px">
+				<span class="lp-eyebrow lp-reveal"><span class="dot"></span> Atendimento à norma</span>
+				<h2 class="lp-h2 lp-reveal" style="margin-top: 16px">
 					O PGD Livre nasce vinculado à norma — não como ferramenta paralela.
 				</h2>
-				<p class="lp-lede" style="margin-top: 20px">
-					O Decreto 11.072/2022 e as Instruções Normativas conjuntas 24/2023 e 52/2023
-					estabelecem como órgãos federais devem operar o Programa de Gestão e Desempenho. A
-					plataforma cobre todos os artigos: ato de autorização, ato de instituição,
-					pactuação do TCR, plano de entregas, plano de trabalho, registro de execução,
-					avaliação, recurso, convocação presencial e desligamento.
+				<p class="lp-lede lp-reveal" style="margin-top: 20px">
+					O Decreto 11.072/2022 e as Instruções Normativas conjuntas 24/2023 e 52/2023 estabelecem
+					como órgãos federais devem operar o Programa de Gestão e Desempenho. A plataforma cobre
+					todos os artigos: ato de autorização, ato de instituição, pactuação do TCR, plano de
+					entregas, plano de trabalho, registro de execução, avaliação, recurso, convocação
+					presencial e desligamento.
 				</p>
 				<a
 					href="https://pgdgovbr.github.io/docs/conceitos/programa/"
-					class="lp-btn lp-btn-outline"
+					class="lp-btn lp-btn-outline lp-reveal"
 					style="margin-top: 28px"
 				>
 					Saiba mais sobre o Programa de Gestão →
@@ -114,21 +249,23 @@
 			</div>
 		</section>
 
-		<!-- Bloco 2: Ciclo da norma (dark) -->
-		<section class="lp-section dark" id="ciclo">
+		<section class="lp-section dark" id="ciclo" data-section="ciclo">
 			<div class="lp-wrap">
 				<div style="max-width: 720px">
-					<span class="lp-eyebrow"><span class="dot acc"></span> Ciclo da norma</span>
-					<h2 class="lp-h2" style="margin-top: 18px; color: white">
+					<span class="lp-eyebrow lp-reveal"
+						><span class="dot acc"></span> Ciclo da norma</span
+					>
+					<h2 class="lp-h2 lp-reveal" style="margin-top: 18px; color: white">
 						Da pactuação ao envio à API Central, sem ação manual.
 					</h2>
-					<p class="lp-lede" style="color: rgba(255,255,255,0.74); margin-top: 18px">
+					<p class="lp-lede lp-reveal" style="color: rgba(255,255,255,0.74); margin-top: 18px">
 						Cada etapa do ciclo está amarrada ao prazo da norma. O sistema notifica antes do
-						vencimento, registra o evento em log imutável e sincroniza com a API PGD Central
-						— automatizando o que tradicionalmente exigia planilhas e e-mails.
+						vencimento, registra o evento em log imutável e sincroniza com a API PGD Central —
+						automatizando o que tradicionalmente exigia planilhas e e-mails.
 					</p>
 				</div>
-				<ConformidadeTimeline />
+				<div class="ciclo-desktop"><ConformidadeTimeline /></div>
+				<div class="ciclo-mobile lp-reveal"><CicloTimelineMobile /></div>
 				<div class="ciclo-links">
 					<a href="https://pgdgovbr.github.io/docs/conceitos/pactuacao-bilateral/">
 						Sobre a pactuação bilateral →
@@ -136,26 +273,23 @@
 					<a href="https://pgdgovbr.github.io/docs/conceitos/papeis/">
 						Papéis e responsabilidades →
 					</a>
-					<a href="https://pgdgovbr.github.io/docs/conceitos/glossario/">
-						Glossário do PGD →
-					</a>
+					<a href="https://pgdgovbr.github.io/docs/conceitos/glossario/">Glossário do PGD →</a>
 				</div>
 			</div>
 		</section>
 
-		<!-- Bloco 3: Inteligência generativa -->
-		<section class="lp-section" id="ia">
+		<section class="lp-section" id="ia" data-section="ia">
 			<div class="lp-wrap">
 				<div class="ia-grid">
 					<div class="ia-sticky">
-						<span class="lp-eyebrow">
+						<span class="lp-eyebrow lp-reveal">
 							<span class="dot" style="background: var(--c-status-aval, #5C2D91)"></span>
 							Inteligência generativa
 						</span>
-						<h2 class="lp-h2" style="margin-top: 18px">
+						<h2 class="lp-h2 lp-reveal" style="margin-top: 18px">
 							IA aplicada à escrita e revisão dos textos.
 						</h2>
-						<p class="ia-lede">
+						<p class="ia-lede lp-reveal">
 							Sem hype, sem caixa-preta. Cada uso de IA na plataforma resolve uma dor real do
 							servidor ou da chefia — com prompt aberto, lacunas sinalizadas e nada inventado.
 						</p>
@@ -163,15 +297,25 @@
 
 					<div>
 						<div style="margin-bottom: 36px">
-							<div class="ia-section-label">
+							<div class="ia-section-label lp-reveal">
 								<span class="ia-chip ok">
 									<span class="dot" style="background: var(--c-success)"></span>
 									Disponível na demonstração
 								</span>
 							</div>
-							<div class="ia-card-recurso">
+							<div class="ia-card-recurso lp-reveal">
 								<div class="ia-card-icon">
-									<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<svg
+										width="28"
+										height="28"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="1.8"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										aria-hidden="true"
+									>
 										<path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
 										<path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" opacity=".6" />
 									</svg>
@@ -202,7 +346,7 @@
 						</div>
 
 						<div>
-							<div class="ia-section-label">
+							<div class="ia-section-label lp-reveal">
 								<span class="ia-chip warn">
 									<span class="dot" style="background: var(--c-accent)"></span>
 									Em desenvolvimento
@@ -229,119 +373,236 @@
 			</div>
 		</section>
 
-		<!-- Bloco 4: Conformidade e padrões (cream) -->
-		<section class="lp-section cream" id="conformidade">
+		<section class="lp-section cream" id="conformidade" data-section="conformidade">
 			<div class="lp-wrap">
 				<div style="max-width: 720px; margin-bottom: 40px">
-					<span class="lp-eyebrow"><span class="dot"></span> Conformidade e padrões</span>
-					<h2 class="lp-h2" style="margin-top: 18px; margin-bottom: 14px">
+					<span class="lp-eyebrow lp-reveal"
+						><span class="dot"></span> Conformidade e padrões</span
+					>
+					<h2 class="lp-h2 lp-reveal" style="margin-top: 18px; margin-bottom: 14px">
 						Construído para o serviço público.
 					</h2>
-					<p class="lp-lede">
+					<p class="lp-lede lp-reveal">
 						Aderência a padrões de privacidade, acessibilidade, interoperabilidade e segurança
 						que o serviço público federal exige — testáveis no código, não apenas declarados.
 					</p>
 				</div>
 
 				<div class="selos-grid">
-					<SeloConformidade
-						status="em conformidade"
-						ttl="LGPD"
-						sub="Autenticação institucional, log imutável de auditoria, base para retenção e anonimização. Lei 13.709/2018."
-					>
-						{#snippet icon()}
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-						{/snippet}
-					</SeloConformidade>
+					<div class="lp-reveal">
+						<SeloConformidade
+							status="em conformidade"
+							ttl="LGPD"
+							sub="Autenticação institucional, log imutável de auditoria, base para retenção e anonimização. Lei 13.709/2018."
+						>
+							{#snippet icon()}
+								<svg
+									width="22"
+									height="22"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+									><rect x="3" y="11" width="18" height="11" rx="2" /><path
+										d="M7 11V7a5 5 0 0 1 10 0v4"
+									/></svg
+								>
+							{/snippet}
+						</SeloConformidade>
+					</div>
 
-					<SeloConformidade
-						status="em conformidade"
-						ttl="WCAG 2.1 AA"
-						sub="Contrastes validados, navegação por teclado e foco visível nos componentes-chave. Padrão internacional W3C."
-					>
-						{#snippet icon()}
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M8 12h8M12 8v8" /></svg>
-						{/snippet}
-					</SeloConformidade>
+					<div class="lp-reveal">
+						<SeloConformidade
+							status="em conformidade"
+							ttl="WCAG 2.1 AA"
+							sub="Contrastes validados, navegação por teclado e foco visível nos componentes-chave. Padrão internacional W3C."
+						>
+							{#snippet icon()}
+								<svg
+									width="22"
+									height="22"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+									><circle cx="12" cy="12" r="9" /><path d="M8 12h8M12 8v8" /></svg
+								>
+							{/snippet}
+						</SeloConformidade>
+					</div>
 
-					<SeloConformidade
-						status="em conformidade"
-						ttl="e-MAG"
-						sub="Modelo de Acessibilidade em Governo Eletrônico. Aderência às diretrizes brasileiras alinhadas ao WCAG."
-					>
-						{#snippet icon()}
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v6H4zM4 14h16v6H4z" /></svg>
-						{/snippet}
-					</SeloConformidade>
+					<div class="lp-reveal">
+						<SeloConformidade
+							status="em conformidade"
+							ttl="e-MAG"
+							sub="Modelo de Acessibilidade em Governo Eletrônico. Aderência às diretrizes brasileiras alinhadas ao WCAG."
+						>
+							{#snippet icon()}
+								<svg
+									width="22"
+									height="22"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"><path d="M4 4h16v6H4zM4 14h16v6H4z" /></svg
+								>
+							{/snippet}
+						</SeloConformidade>
+					</div>
 
-					<SeloConformidade
-						status="implementado"
-						ttl="e-PING"
-						sub="Padrões de Interoperabilidade do Governo Eletrônico. Integração nativa com a API PGD Central do MGI."
-					>
-						{#snippet icon()}
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>
-						{/snippet}
-					</SeloConformidade>
+					<div class="lp-reveal">
+						<SeloConformidade
+							status="implementado"
+							ttl="e-PING"
+							sub="Padrões de Interoperabilidade do Governo Eletrônico. Integração nativa com a API PGD Central do MGI."
+						>
+							{#snippet icon()}
+								<svg
+									width="22"
+									height="22"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+									><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg
+								>
+							{/snippet}
+						</SeloConformidade>
+					</div>
 
-					<SeloConformidade
-						status="implementado"
-						ttl="CSP e cabeçalhos de segurança"
-						sub="Content Security Policy testada no backend. Headers HTTP de segurança aplicados por padrão."
-					>
-						{#snippet icon()}
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-						{/snippet}
-					</SeloConformidade>
+					<div class="lp-reveal">
+						<SeloConformidade
+							status="implementado"
+							ttl="CSP e cabeçalhos de segurança"
+							sub="Content Security Policy testada no backend. Headers HTTP de segurança aplicados por padrão."
+						>
+							{#snippet icon()}
+								<svg
+									width="22"
+									height="22"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+									><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg
+								>
+							{/snippet}
+						</SeloConformidade>
+					</div>
 
-					<SeloConformidade
-						status="implementado"
-						ttl="Auditoria imutável"
-						sub="Cada criação, edição, assinatura, devolução e ato de avaliação gera evento auditável persistido — sem rota de delete."
-					>
-						{#snippet icon()}
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9" /><path d="M3 4v5h5" /><path d="M12 7v5l3 2" /></svg>
-						{/snippet}
-					</SeloConformidade>
+					<div class="lp-reveal">
+						<SeloConformidade
+							status="implementado"
+							ttl="Auditoria imutável"
+							sub="Cada criação, edição, assinatura, devolução e ato de avaliação gera evento auditável persistido — sem rota de delete."
+						>
+							{#snippet icon()}
+								<svg
+									width="22"
+									height="22"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+									><path d="M3 12a9 9 0 1 0 9-9" /><path d="M3 4v5h5" /><path
+										d="M12 7v5l3 2"
+									/></svg
+								>
+							{/snippet}
+						</SeloConformidade>
+					</div>
 
-					<SeloConformidade
-						status="implementado"
-						ttl="Multi-tenant com isolamento"
-						sub="Uma instância pode servir múltiplos órgãos com isolamento total de dados — útil para shared services."
-					>
-						{#snippet icon()}
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z" /><path d="M9 3v18M15 3v18M3 9h18M3 15h18" /></svg>
-						{/snippet}
-					</SeloConformidade>
+					<div class="lp-reveal desktop-only">
+						<SeloConformidade
+							status="implementado"
+							ttl="Multi-tenant com isolamento"
+							sub="Uma instância pode servir múltiplos órgãos com isolamento total de dados — útil para shared services."
+						>
+							{#snippet icon()}
+								<svg
+									width="22"
+									height="22"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+									><path d="M3 3h18v18H3z" /><path
+										d="M9 3v18M15 3v18M3 9h18M3 15h18"
+									/></svg
+								>
+							{/snippet}
+						</SeloConformidade>
+					</div>
 
-					<SeloConformidade
-						status="implementado"
-						ttl="Acesso institucional via Gov.br"
-						sub="Identidade federada do cidadão e do servidor público brasileiro. Padrão único de autenticação."
-					>
-						{#snippet icon()}
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 11h-6M19 8v6" /></svg>
-						{/snippet}
-					</SeloConformidade>
+					<div class="lp-reveal desktop-only">
+						<SeloConformidade
+							status="implementado"
+							ttl="Acesso institucional via Gov.br"
+							sub="Identidade federada do cidadão e do servidor público brasileiro. Padrão único de autenticação."
+						>
+							{#snippet icon()}
+								<svg
+									width="22"
+									height="22"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+									><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle
+										cx="9"
+										cy="7"
+										r="4"
+									/><path d="M22 11h-6M19 8v6" /></svg
+								>
+							{/snippet}
+						</SeloConformidade>
+					</div>
 				</div>
 			</div>
 		</section>
 
-		<!-- Bloco 5: Arquitetura -->
-		<section class="lp-section" id="arquitetura">
+		<section class="lp-section" id="arquitetura" data-section="arquitetura">
 			<div class="lp-wrap">
 				<div class="arq-grid">
 					<div>
-						<span class="lp-eyebrow"><span class="dot"></span> Arquitetura</span>
-						<h2 class="lp-h2" style="margin-top: 18px; margin-bottom: 18px">
+						<span class="lp-eyebrow lp-reveal"><span class="dot"></span> Arquitetura</span>
+						<h2 class="lp-h2 lp-reveal" style="margin-top: 18px; margin-bottom: 18px">
 							Software Livre, desacoplado e auditável.
 						</h2>
-						<p class="lp-lede" style="margin-bottom: 22px; max-width: 60ch">
+						<p class="lp-lede lp-reveal" style="margin-bottom: 22px; max-width: 60ch">
 							Cada decisão arquitetural foi tomada para manter o controle do órgão sobre seus
-							dados, evitar dependência de fornecedor único e permitir crescimento sem reescrita.
+							dados, evitar dependência de fornecedor único e permitir crescimento sem
+							reescrita.
 						</p>
 
-						<div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px">
+						<div
+							class="lp-reveal"
+							style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px"
+						>
 							<ArqItem
 								ttl="Software Livre · AGPL-3.0 e CC-BY-4.0"
 								sub="Código sob AGPL-3.0; conteúdo e documentação sob CC-BY-4.0. Sem dependência de fornecedor único, com garantia de auditabilidade."
@@ -360,7 +621,7 @@
 							/>
 						</div>
 
-						<div style="display: flex; gap: 8px; flex-wrap: wrap">
+						<div class="lp-reveal" style="display: flex; gap: 8px; flex-wrap: wrap">
 							<span class="lp-chip">SvelteKit · Svelte 5</span>
 							<span class="lp-chip">FastAPI</span>
 							<span class="lp-chip">Strawberry GraphQL</span>
@@ -371,7 +632,7 @@
 						</div>
 					</div>
 
-					<div class="arq-diagram">
+					<div class="arq-diagram lp-reveal">
 						<span class="lp-eyebrow" style="margin-bottom: 18px">Diagrama · integração</span>
 
 						<div class="arq-box arq-orgao">
@@ -388,7 +649,17 @@
 						<div class="arq-arrow">
 							<span class="line"></span>
 							<span class="arq-arrow-label">HTTPS · GraphQL · sync automático</span>
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<svg
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
 								<path d="M12 5v14M19 12l-7 7-7-7" />
 							</svg>
 							<span class="line"></span>
@@ -410,53 +681,90 @@
 			</div>
 		</section>
 
-		<!-- Bloco 6: Em desenvolvimento (cream) -->
-		<section class="lp-section cream">
+		<section class="lp-section cream" data-section="roadmap">
 			<div class="lp-wrap">
 				<div style="max-width: 720px; margin-bottom: 36px">
-					<span class="lp-eyebrow">
+					<span class="lp-eyebrow lp-reveal">
 						<span class="dot" style="background: var(--c-accent)"></span>
 						Em desenvolvimento
 					</span>
-					<h2 class="lp-h2" style="margin-top: 18px; margin-bottom: 14px">
+					<h2 class="lp-h2 lp-reveal" style="margin-top: 18px; margin-bottom: 14px">
 						O que vem a seguir.
 					</h2>
-					<p class="lp-lede">
+					<p class="lp-lede lp-reveal">
 						Iniciativas em construção que expandem o alcance da plataforma. Roadmap aberto,
 						público, ajustável às prioridades dos órgãos parceiros.
 					</p>
 				</div>
 
 				<div class="roadmap-grid">
-					<RoadmapItem
-						ttl="Exportação de dados em CSV, JSON e YAML"
-						desc="Para análise externa, integrações analíticas e auditoria por órgãos de controle."
-					/>
-					<RoadmapItem
-						ttl="Exportação de PDF em lote"
-						desc="Planos de Trabalho e registros de execução de uma unidade inteira em um arquivo, para arquivo institucional."
-					/>
-					<RoadmapItem
-						ttl="Integração com GitHub Projects"
-						desc="Importação automática de Planos de Trabalho e execuções a partir de issues e milestones. Ideal para equipes de desenvolvimento de software."
-						tag="Integração SaaS"
-					/>
-					<RoadmapItem
-						ttl="Integração com plataformas de gestão"
-						desc="Conectores para Jira, Trello, Notion e demais ferramentas de gestão de projetos já adotadas pelas equipes."
-						tag="Integração SaaS"
-					/>
-					<RoadmapItem
-						ttl="Painel de notificações multicanal"
-						desc="Configuração granular por evento e por canal: e-mail institucional, Telegram, Web Push, webhooks."
-					/>
-					<RoadmapItem
-						ttl="Aplicativo PárcIA · IA parceira do servidor"
-						desc="App dedicado com registro por áudio, alertas de prazo, lembretes contextuais e atalhos para registro mensal."
-						tag="Aplicativo nativo"
-					/>
+					<div class="lp-reveal">
+						<RoadmapItem
+							ttl="Exportação de dados em CSV, JSON e YAML"
+							desc="Para análise externa, integrações analíticas e auditoria por órgãos de controle."
+						/>
+					</div>
+					<div class="lp-reveal">
+						<RoadmapItem
+							ttl="Exportação de PDF em lote"
+							desc="Planos de Trabalho e registros de execução de uma unidade inteira em um arquivo, para arquivo institucional."
+						/>
+					</div>
+					<div class="lp-reveal">
+						<RoadmapItem
+							ttl="Integração com GitHub Projects"
+							desc="Importação automática de Planos de Trabalho e execuções a partir de issues e milestones. Ideal para equipes de desenvolvimento de software."
+							tag="Integração SaaS"
+						/>
+					</div>
+					<div class="lp-reveal">
+						<RoadmapItem
+							ttl="Integração com plataformas de gestão"
+							desc="Conectores para Jira, Trello, Notion e demais ferramentas de gestão de projetos já adotadas pelas equipes."
+							tag="Integração SaaS"
+						/>
+					</div>
+					<div class="lp-reveal">
+						<RoadmapItem
+							ttl="Painel de notificações multicanal"
+							desc="Configuração granular por evento e por canal: e-mail institucional, Telegram, Web Push, webhooks."
+						/>
+					</div>
+					<div class="lp-reveal desktop-only">
+						<RoadmapItem
+							ttl="Aplicativo PárcIA · IA parceira do servidor"
+							desc="App dedicado com registro por áudio, alertas de prazo, lembretes contextuais e atalhos para registro mensal."
+							tag="Aplicativo nativo"
+						/>
+					</div>
 				</div>
 			</div>
+		</section>
+
+		<section class="lp-mobile-cta" data-section="mobile-cta" aria-label="Demonstração pública">
+			<span class="lp-eyebrow"><span class="dot acc"></span> Demonstração pública</span>
+			<h2>Conheça a plataforma com personas reais do PGD.</h2>
+			<p>
+				Em produção, o acesso é via Gov.br. Na demonstração, escolha um perfil e explore o fluxo
+				completo.
+			</p>
+			<a href="/login" class="lp-btn mobile-cta-btn">
+				Acessar demonstração
+				<svg
+					class="cta-arrow"
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.4"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M5 12h14M13 6l6 6-6 6" />
+				</svg>
+			</a>
 		</section>
 
 		<FooterInstitucional />
@@ -470,15 +778,17 @@
 	}
 	.lp-hero-grid {
 		display: grid;
-		grid-template-columns: 1fr;
-		gap: 48px;
+		grid-template-columns: 1.25fr 0.95fr;
+		gap: 64px;
+		align-items: center;
 	}
 	.lp-hero-text {
-		max-width: 760px;
+		max-width: 640px;
 	}
 	.lp-h1 {
 		margin-top: 24px;
 		max-width: 18ch;
+		font-size: 56px;
 	}
 	.lp-hero-cta {
 		margin-top: 36px;
@@ -486,11 +796,100 @@
 		flex-wrap: wrap;
 		gap: 12px;
 	}
-	.lp-hero-chips {
-		margin-top: 28px;
+	.lp-hero-credit {
+		margin-top: 36px;
 		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
+		align-items: center;
+		gap: 16px;
+	}
+	.lp-hero-credit hr {
+		flex: 0 0 48px;
+		height: 1px;
+		background: rgba(11, 20, 38, 0.18);
+		border: 0;
+		margin: 0;
+	}
+	.lp-hero-credit span {
+		font-size: 12.5px;
+		font-family: var(--ff-mono, ui-monospace, monospace);
+		color: var(--c-muted);
+		letter-spacing: 0.02em;
+	}
+
+	/* Desktop phone column */
+	.lp-hero-phone-desktop {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 760px;
+	}
+	.hero-callout {
+		position: absolute;
+		z-index: 2;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.callout-ia {
+		top: 64px;
+		right: 0;
+		background: var(--c-status-aval, #5c2d91);
+		color: white;
+		padding: 9px 14px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+		box-shadow: 0 10px 24px -12px rgba(92, 45, 145, 0.5);
+	}
+	.callout-norma {
+		bottom: 64px;
+		left: 0;
+		background: white;
+		padding: 13px 18px;
+		border-radius: 12px;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 2px;
+		box-shadow:
+			0 12px 28px -14px rgba(11, 20, 38, 0.25),
+			0 0 0 1px rgba(11, 20, 38, 0.08);
+	}
+	.callout-norma strong {
+		font-size: 13px;
+		color: var(--c-ink-editorial);
+		font-weight: 700;
+		letter-spacing: -0.005em;
+	}
+	.callout-norma > span {
+		font-size: 11.5px;
+		color: var(--c-muted);
+		font-family: var(--ff-mono, ui-monospace, monospace);
+		letter-spacing: 0.02em;
+	}
+
+	/* Mobile phone */
+	.lp-hero-phone-mobile {
+		display: none;
+	}
+	.phone-caption {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		font-size: 10.5px;
+		color: var(--c-muted);
+		font-family: var(--ff-mono, ui-monospace, monospace);
+		letter-spacing: 0.04em;
+		margin: 12px 0 0;
+		text-transform: uppercase;
+	}
+
+	.cta-arrow {
+		transition: transform 200ms ease-out;
+	}
+	.lp-btn:hover .cta-arrow {
+		transform: translateX(3px);
 	}
 	.lp-stat {
 		background: var(--c-paper-2);
@@ -502,18 +901,95 @@
 		grid-template-columns: repeat(4, 1fr);
 		gap: 32px;
 	}
+	@media (max-width: 1024px) {
+		.lp-hero-grid {
+			grid-template-columns: 1fr;
+			gap: 32px;
+		}
+		.lp-hero-phone-desktop {
+			display: none;
+		}
+		.lp-hero-phone-mobile {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			margin-top: 32px;
+		}
+		.lp-h1 {
+			font-size: 44px;
+		}
+	}
 	@media (max-width: 900px) {
 		.lp-stat-grid {
 			grid-template-columns: repeat(2, 1fr);
 		}
 	}
-	@media (max-width: 560px) {
+	@media (max-width: 719px) {
 		.lp-hero {
-			padding-bottom: 56px;
+			padding-top: 32px;
+			padding-bottom: 28px;
+		}
+		.lp-h1 {
+			max-width: none;
+			margin-top: 18px;
+		}
+		.lp-hero-phone-mobile {
+			margin-top: 24px;
+		}
+		.lp-hero-cta {
+			margin-top: 22px;
+			flex-direction: column;
+			gap: 10px;
+		}
+		.lp-hero-cta > a {
+			width: 100%;
+			justify-content: center;
+			padding: 14px;
+			font-size: 15px;
+		}
+		.lp-hero-credit {
+			margin-top: 22px;
+		}
+		.lp-hero-credit hr {
+			flex-basis: 32px;
+		}
+		.lp-hero-credit span {
+			font-size: 11px;
+		}
+		/* Statbar 2×2 com moldura */
+		.lp-stat {
+			padding-top: 0;
+			padding-bottom: 8px;
+		}
+		.lp-stat-grid {
+			grid-template-columns: 1fr 1fr;
+			gap: 1px;
+			background: rgba(11, 20, 38, 0.08);
+			border-radius: 14px;
+			overflow: hidden;
+			border: 1px solid rgba(11, 20, 38, 0.06);
+		}
+		.lp-stat-grid > div {
+			background: var(--c-paper);
+			padding: 18px 14px;
+			margin: 0;
+		}
+		.lp-stat-num {
+			font-size: 28px;
+		}
+		.lp-stat-num.text {
+			font-size: 20px;
+		}
+		.lp-stat-label {
+			font-size: 11px;
+			margin-top: 8px;
 		}
 	}
 
 	/* Bloco 2 — Ciclo da norma (dark) */
+	.ciclo-mobile {
+		display: none;
+	}
 	.ciclo-links {
 		margin-top: 56px;
 		display: flex;
@@ -531,6 +1007,17 @@
 	.ciclo-links a:hover {
 		color: white;
 		border-color: white;
+	}
+	@media (max-width: 719px) {
+		.ciclo-desktop {
+			display: none;
+		}
+		.ciclo-mobile {
+			display: block;
+		}
+		.ciclo-links {
+			display: none;
+		}
 	}
 
 	/* Bloco 3 — Inteligência generativa */
@@ -739,6 +1226,11 @@
 		gap: 12px;
 	}
 
+	/* CTA final — mobile only */
+	.lp-mobile-cta {
+		display: none;
+	}
+
 	@media (max-width: 900px) {
 		.ia-grid,
 		.arq-grid {
@@ -755,12 +1247,81 @@
 			grid-template-columns: 1fr;
 		}
 	}
-	@media (max-width: 560px) {
-		.selos-grid {
-			grid-template-columns: 1fr;
+	@media (max-width: 719px) {
+		.ia-grid,
+		.arq-grid {
+			gap: 32px;
 		}
 		.ia-card-recurso {
 			flex-direction: column;
+			padding: 20px;
+			gap: 14px;
+		}
+		.ia-card-icon {
+			width: 44px;
+			height: 44px;
+			border-radius: 10px;
+		}
+		.ia-card-ttl {
+			font-size: 16.5px;
+		}
+		.ia-card-desc {
+			font-size: 13px;
+		}
+		.selos-grid {
+			grid-template-columns: 1fr 1fr;
+			gap: 10px;
+		}
+		.selos-grid > .desktop-only {
+			display: none;
+		}
+		.roadmap-grid > .desktop-only {
+			display: none;
+		}
+		.arq-diagram {
+			padding: 18px;
+			border-radius: 14px;
+		}
+		.lp-mobile-cta {
+			display: block;
+			padding: 44px 20px;
+			background: var(--c-ink-editorial);
+			color: white;
+			text-align: center;
+		}
+		.lp-mobile-cta .lp-eyebrow {
+			color: rgba(255, 255, 255, 0.62);
+			justify-content: center;
+		}
+		.lp-mobile-cta .lp-eyebrow .acc,
+		.lp-mobile-cta .lp-eyebrow .dot {
+			background: var(--c-accent);
+		}
+		.lp-mobile-cta h2 {
+			font-family: var(--ff-display);
+			font-size: 24px;
+			font-weight: 700;
+			letter-spacing: -0.02em;
+			line-height: 1.2;
+			margin: 14px 0;
+			color: white;
+		}
+		.lp-mobile-cta p {
+			font-size: 14px;
+			color: rgba(255, 255, 255, 0.7);
+			line-height: 1.55;
+			margin: 0 0 22px;
+		}
+		.mobile-cta-btn {
+			background: white;
+			color: var(--c-ink-editorial);
+			width: 100%;
+			justify-content: center;
+			padding: 14px 22px;
+			font-size: 15px;
+			box-shadow:
+				0 0 0 6px rgba(255, 255, 255, 0.06),
+				0 12px 24px -12px rgba(0, 0, 0, 0.6);
 		}
 	}
 </style>

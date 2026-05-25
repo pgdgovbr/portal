@@ -26,7 +26,7 @@
 			<path d="M20 6L9 17l-5-5" />
 		</svg>
 	</span>
-	<div>
+	<div class="body">
 		<strong>{ttl}</strong>
 		<p>{sub}</p>
 	</div>
@@ -49,6 +49,10 @@
 		align-items: center;
 		justify-content: center;
 		margin-top: 2px;
+	}
+	.body {
+		flex: 1;
+		min-width: 0;
 	}
 	strong {
 		font-size: 15px;
