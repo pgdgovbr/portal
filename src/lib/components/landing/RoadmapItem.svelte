@@ -64,6 +64,7 @@
 	}
 	.body {
 		flex: 1;
+		min-width: 0;
 	}
 	.head {
 		display: flex;
