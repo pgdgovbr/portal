@@ -790,6 +790,9 @@
 		max-width: 18ch;
 		font-size: 56px;
 	}
+	.lp-hero-text .lp-lede {
+		margin-top: 28px;
+	}
 	.lp-hero-cta {
 		margin-top: 36px;
 		display: flex;
@@ -931,6 +934,9 @@
 		}
 		.lp-h1 {
 			max-width: none;
+			margin-top: 18px;
+		}
+		.lp-hero-text .lp-lede {
 			margin-top: 18px;
 		}
 		.lp-hero-phone-mobile {
