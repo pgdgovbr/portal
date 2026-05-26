@@ -206,14 +206,46 @@
 		<section class="lp-section lp-stat" data-section="statbar">
 			<div class="lp-wrap">
 				<div class="lp-stat-grid" bind:this={statbarRef}>
-					<div>
+					<a class="stat-link" href="https://pgdgovbr.github.io/docs/sobre/pgd-libre/#base-legal">
 						<div class="lp-stat-num">{stat37}</div>
-						<div class="lp-stat-label">requisitos funcionais cobertos</div>
-					</div>
-					<div>
+						<div class="lp-stat-label">
+							requisitos funcionais cobertos
+							<svg
+								class="stat-arrow"
+								width="11"
+								height="11"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2.2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M7 17L17 7M9 7h8v8" />
+							</svg>
+						</div>
+					</a>
+					<a class="stat-link" href="https://pgdgovbr.github.io/docs/conceitos/papeis/">
 						<div class="lp-stat-num">{stat4}</div>
-						<div class="lp-stat-label">papéis (servidor, chefia, gestor, admin)</div>
-					</div>
+						<div class="lp-stat-label">
+							papéis (servidor, chefia, gestor, admin)
+							<svg
+								class="stat-arrow"
+								width="11"
+								height="11"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2.2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M7 17L17 7M9 7h8v8" />
+							</svg>
+						</div>
+					</a>
 					<div>
 						<div class="lp-stat-num text">AGPL</div>
 						<div class="lp-stat-label">código sob 3.0 + conteúdo CC-BY-4.0</div>
@@ -903,6 +935,34 @@
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		gap: 32px;
+	}
+	.stat-link {
+		display: block;
+		text-decoration: none;
+		color: inherit;
+		transition: transform 200ms ease-out;
+	}
+	.stat-link:hover .lp-stat-num,
+	.stat-link:focus-visible .lp-stat-num {
+		color: var(--c-primary);
+	}
+	.stat-link:hover .stat-arrow,
+	.stat-link:focus-visible .stat-arrow {
+		opacity: 1;
+		transform: translate(2px, -2px);
+	}
+	.stat-arrow {
+		display: inline-block;
+		margin-left: 6px;
+		color: var(--c-accent);
+		opacity: 0.55;
+		transition:
+			opacity 200ms ease-out,
+			transform 200ms ease-out;
+		vertical-align: -1px;
+	}
+	.lp-stat-num {
+		transition: color 200ms ease-out;
 	}
 	@media (max-width: 1024px) {
 		.lp-hero-grid {
