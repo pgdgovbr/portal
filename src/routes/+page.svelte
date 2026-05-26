@@ -206,7 +206,7 @@
 		<section class="lp-section lp-stat" data-section="statbar">
 			<div class="lp-wrap">
 				<div class="lp-stat-grid" bind:this={statbarRef}>
-					<a class="stat-link" href="https://pgdgovbr.github.io/docs/sobre/pgd-libre/#base-legal">
+					<a class="stat-link" href="https://pgdgovbr.github.io/docs/sobre/requisitos-funcionais/">
 						<div class="lp-stat-num">{stat37}</div>
 						<div class="lp-stat-label">
 							requisitos funcionais cobertos
